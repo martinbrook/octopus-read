@@ -108,52 +108,71 @@ def main():
         records.append({"dt": dt_utc, "kwh": kwh, "solar": solar})
 
     # -----------------------------------------------------------------------
-    # 1. Overnight (no-solar) records — ground truth for baseload
+    # 1. Full overnight (non-solar) — broad overview
     # -----------------------------------------------------------------------
     night = [r for r in records if not r["solar"]]
     day   = [r for r in records if r["solar"]]
-
-    night_kwh  = [r["kwh"] for r in night]
+    night_kwh = [r["kwh"] for r in night]
     night_avg  = sum(night_kwh) / len(night_kwh)
-    night_min  = min(night_kwh)
-    night_med  = sorted(night_kwh)[len(night_kwh) // 2]
-    # 10th percentile — filters out rare near-zero slots
-    p10_idx    = int(0.10 * len(night_kwh))
-    night_p10  = sorted(night_kwh)[p10_idx]
 
     print("=" * 60)
-    print("OVERNIGHT (no-solar) CONSUMPTION — half-hour slots")
+    print("ALL NON-SOLAR HOURS (incl. evenings) — overview")
     print("=" * 60)
-    print(f"  Slots analysed    : {len(night)}")
-    print(f"  Average           : {night_avg*2000:.0f} W  ({night_avg:.4f} kWh/slot)")
-    print(f"  Median            : {night_med*2000:.0f} W  ({night_med:.4f} kWh/slot)")
-    print(f"  10th percentile   : {night_p10*2000:.0f} W  ({night_p10:.4f} kWh/slot)")
-    print(f"  Minimum ever      : {night_min*2000:.0f} W  ({night_min:.4f} kWh/slot)")
+    print(f"  Slots            : {len(night)}")
+    print(f"  Average          : {night_avg*2000:.0f} W")
+    print(f"  Note: includes evening peak — not a useful baseload metric")
     print()
 
     # -----------------------------------------------------------------------
-    # 2. Per-night minimum (most conservative baseload estimate)
+    # 2. Deep night (01:00–05:30 UTC) — people asleep, no solar, no evening
     # -----------------------------------------------------------------------
-    by_date_night = defaultdict(list)
-    for r in night:
-        by_date_night[r["dt"].date()].append(r["kwh"])
+    deep = [r for r in records
+            if 60 <= r["dt"].hour * 60 + r["dt"].minute < 330]  # 01:00–05:30
 
-    nightly_mins = [min(v) for v in by_date_night.values()]
-    avg_nightly_min = sum(nightly_mins) / len(nightly_mins)
-    med_nightly_min = sorted(nightly_mins)[len(nightly_mins) // 2]
+    deep_w = sorted(r["kwh"] * 2000 for r in deep)
+    n = len(deep_w)
 
-    print("PER-NIGHT MINIMUM (each night's lowest half-hour)")
-    print("-" * 60)
-    print(f"  Nights analysed   : {len(nightly_mins)}")
-    print(f"  Average of mins   : {avg_nightly_min*2000:.0f} W")
-    print(f"  Median of mins    : {med_nightly_min*2000:.0f} W")
+    print("=" * 60)
+    print("DEEP NIGHT (01:00–05:30 UTC) — baseload analysis")
+    print("=" * 60)
+    print(f"  Slots analysed    : {n}")
+    print(f"  Average           : {sum(deep_w)/n:.0f} W")
+    print(f"  Median            : {deep_w[n//2]:.0f} W")
+    print(f"  10th percentile   : {deep_w[n//10]:.0f} W")
+    print(f"  5th percentile    : {deep_w[n//20]:.0f} W")
+    print(f"  Minimum ever      : {deep_w[0]:.0f} W")
+    print()
+
+    by_date_deep = defaultdict(list)
+    for r in deep:
+        by_date_deep[r["dt"].date()].append(r["kwh"] * 2000)
+
+    nightly_mins = sorted(min(v) for v in by_date_deep.values())
+    nm = len(nightly_mins)
+
+    print(f"  Per-night minimum ({nm} nights):")
+    print(f"    Average of mins  : {sum(nightly_mins)/nm:.0f} W")
+    print(f"    Median of mins   : {nightly_mins[nm//2]:.0f} W")
+    print(f"    Lowest night min : {nightly_mins[0]:.0f} W")
+    print()
+
+    # Distribution
+    buckets = defaultdict(int)
+    for w in deep_w:
+        b = int(w // 100) * 100
+        buckets[b] += 1
+    print("  Distribution of deep-night readings:")
+    for b in sorted(buckets):
+        bar = "#" * (buckets[b] // 3)
+        print(f"    {b:>5}–{b+99:<4} W : {buckets[b]:>4}  {bar}")
     print()
 
     # -----------------------------------------------------------------------
     # 3. Baseload estimate summary
     # -----------------------------------------------------------------------
-    # Best estimate: median of per-night minimums (robust to outliers)
-    baseload_w = med_nightly_min * 2 * 1000
+    # True standby = lowest 5th percentile of deep-night (filters occasional
+    # high loads like tumble dryer/dehumidifier running on a timer)
+    baseload_w = deep_w[n // 20]
     baseload_kwh_day = baseload_w / 1000 * 24
 
     print("=" * 60)
@@ -161,9 +180,10 @@ def main():
     print("=" * 60)
     print(f"  {baseload_w:.0f} W  ({baseload_kwh_day:.2f} kWh/day)")
     print()
-    print("  Method: median of each night's lowest half-hour reading,")
-    print("  which represents always-on devices (routers, fridges, ")
-    print("  standby loads) with solar generation ruled out.")
+    print("  Method: 5th percentile of deep-night (01:00-05:30) half-hour")
+    print("  readings — captures always-on devices while filtering nights")
+    print("  where a large appliance (e.g. dehumidifier, tumble dryer)")
+    print("  was running. Minimum ever recorded: {:.0f} W.".format(deep_w[0]))
     print()
 
     # -----------------------------------------------------------------------
