@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Simulate an EcoFlow Delta 2 Max + Extra Battery (4 kWh total) charged from
+Simulate an EcoFlow Delta 2 Max + 2 Extra Batteries (6 kWh total) charged from
 Economy 7 cheap-rate hours and solar excess, powering the home office and
 gaming PC.
 
@@ -26,7 +26,7 @@ import datetime
 from collections import defaultdict
 
 # ── Battery specs ────────────────────────────────────────────────────────────
-CAPACITY_WH   = 4096     # EcoFlow Delta 2 Max + 1 extra battery
+CAPACITY_WH   = 6144     # EcoFlow Delta 2 Max + 2 extra batteries (3 × 2,048 Wh)
 CHARGE_EFF    = 0.92     # AC→stored
 DISCHARGE_EFF = 0.92     # stored→output  (round-trip ≈ 85%)
 MAX_CHARGE_W  = 2400     # max AC charge rate
@@ -271,7 +271,7 @@ def report(r):
     days_partial = sum(1 for d in by_day.values() if d["load"] > 0 and 0.5 <= d["battery"] / d["load"] < 0.95)
 
     print("=" * 62)
-    print("BATTERY SIMULATION — EcoFlow Delta 2 Max + Extra (4 kWh)")
+    print("BATTERY SIMULATION — EcoFlow Delta 2 Max + 2× Extra (6 kWh)")
     print(f"Purchase price: £{price:.0f}")
     print("=" * 62)
     print(f"\nPeriod  : {min(by_day)} → {max(by_day)}  ({n_days} days)")
@@ -333,7 +333,7 @@ def write_csv(rows, path):
 
 def main():
     parser = argparse.ArgumentParser(description="Simulate 4kWh battery for home office + gaming PC")
-    parser.add_argument("--price", type=float, default=1350.0, help="Purchase price £ (default 1350)")
+    parser.add_argument("--price", type=float, default=1750.0, help="Purchase price £ (default 1750)")
     parser.add_argument("--csv",   default="battery_simulation.csv", help="Output CSV path")
     args = parser.parse_args()
 
