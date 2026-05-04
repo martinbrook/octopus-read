@@ -10,8 +10,9 @@ Outputs : console summary + battery_simulation.csv
 Assumptions:
   - E7 window: 00:30-07:30 local UK time (East Midlands standard)
   - Round-trip efficiency: 85% (charge 92% × discharge 92%)
-  - Office load: server 150W + networking 30W + PC idle 100W always-on,
-    +100W office gear weekdays 09:00-18:00
+  - Office load (measured): socket A 180W (TV+FireTV+amp) + socket B 100W
+    (monitor+lamp+laptop+router), both always-on 24/7
+  - Server and gaming PC idle added on top (estimates until measured)
   - Gaming load: modelled from late_night_gaming.csv intensity flags,
     applied to the evening before each flagged deep-night date
   - Solar excess: estimated from import dropping below baseload (558W)
@@ -42,11 +43,13 @@ RATE_CHANGE = datetime.date(2026, 4, 1)
 E7_START = 30            # 00:30
 E7_END   = 7 * 60 + 30  # 07:30
 
-# ── Modelled always-on load (home office + gaming PC) ────────────────────────
-SERVER_W       = 150     # home server 24/7
-NETWORK_W      = 30      # router, switch, etc.
-PC_IDLE_W      = 100     # gaming PC at idle
-OFFICE_EXTRA_W = 100     # monitors + work laptop weekdays 09:00-18:00
+# ── Measured always-on load ───────────────────────────────────────────────────
+SOCKET_A_W = 180         # TV + Amazon Fire TV + amp (measured)
+SOCKET_B_W = 100         # monitor + lamp + laptop + router (measured)
+
+# ── Estimated loads (update when measured) ───────────────────────────────────
+SERVER_W   = 150         # home server 24/7 (estimate — TBD)
+PC_IDLE_W  = 100         # gaming PC at idle (estimate — TBD)
 
 # ── Solar excess threshold ───────────────────────────────────────────────────
 BASELOAD_W = 558         # 5th-percentile deep-night — established earlier
@@ -124,12 +127,9 @@ def gaming_extra_w(local_dt, gaming_evenings):
 
 
 def office_gaming_load(dt_utc, gaming_evenings):
-    """Total modelled load (W) for home office + gaming PC at this UTC slot."""
+    """Total modelled load (W) for all battery-powered devices at this UTC slot."""
     local = to_local(dt_utc)
-    mins  = local.hour * 60 + local.minute
-    load  = SERVER_W + NETWORK_W + PC_IDLE_W   # 280W always-on
-    if local.weekday() < 5 and 9 * 60 <= mins < 18 * 60:
-        load += OFFICE_EXTRA_W
+    load  = SOCKET_A_W + SOCKET_B_W + SERVER_W + PC_IDLE_W   # 530W always-on
     load += gaming_extra_w(local, gaming_evenings)
     return load
 
