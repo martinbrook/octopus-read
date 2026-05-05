@@ -1,0 +1,179 @@
+# ─── Template Sensors — Energy Management ─────────────────────────────────────
+# Entity IDs shown are based on the most common naming from each integration.
+# After installation, check Developer Tools > States and adjust entity IDs
+# if the actual names differ from what's listed below.
+#
+# Integration entity ID conventions:
+#   EcoFlow:       sensor.ecoflow_*   (hassio-ecoflow-cloud)
+#   Tapo P110:     sensor.tapo_p110_* (tapo_p110 HACS)
+#   Octopus:       sensor.octopus_energy_electricity_<SERIAL>_<MPAN>_...
+#   SBFspot:       sensor.sbfspot_*  (habuild/haos-sbfspot addon)
+
+- sensor:
+    name: "Is Cheap Rate"
+    unique_id: is_cheap_rate
+    state: >
+      {% set h = now().hour %}
+      {% set m = now().minute %}
+      {% set mins = h * 60 + m %}
+      {{ mins >= 30 and mins < 450 }}
+    attributes:
+      e7_ends_in: >
+        {% set mins = now().hour * 60 + now().minute %}
+        {% if mins >= 30 and mins < 450 %}
+          {{ ((450 - mins) // 60) }}h {{ (450 - mins) % 60 }}m
+        {% else %}
+          N/A
+        {% endif %}
+      current_rate: "{{ states('sensor.octopus_energy_electricity_21M0104038_1100021680150_current_rate') }}"
+
+- sensor:
+    name: "Is Exporting"
+    unique_id: is_exporting
+    state: >
+      {% set solar = states('sensor.sbfspot_power') | float(0) %}
+      {% set home = states('sensor.octopus_energy_electricity_21M0104038_1100021680150_instantaneous_consumption') | float(0) %}
+      {{ solar > home + 20 }}
+    attributes:
+      solar_w: "{{ states('sensor.sbfspot_power') | float(0) }}"
+      home_w: "{{ states('sensor.octopus_energy_electricity_21M0104038_1100021680150_instantaneous_consumption') | float(0) }}"
+      excess_w: >
+        {{ [states('sensor.sbfspot_power') | float(0) - states('sensor.octopus_energy_electricity_21M0104038_1100021680150_instantaneous_consumption') | float(0) - 20, 0] | max }}
+
+- sensor:
+    name: "Battery Charge Rate"
+    unique_id: battery_charge_rate
+    state: "{{ states('sensor.ecoflow_total_in_power') | float(0) }}"
+    unit_of_measurement: "W"
+    device_class: power
+    state_class: measurement
+
+- sensor:
+    name: "Battery Discharge Rate"
+    unique_id: battery_discharge_rate
+    state: "{{ states('sensor.ecoflow_total_out_power') | float(0) }}"
+    unit_of_measurement: "W"
+    device_class: power
+    state_class: measurement
+
+- sensor:
+    name: "Battery Status"
+    unique_id: battery_status
+    state: >
+      {% set soc = states('sensor.ecoflow_soc') | float(0) %}
+      {% set charge = states('sensor.battery_charge_rate') | float(0) %}
+      {% set discharge = states('sensor.battery_discharge_rate') | float(0) %}
+      {% if soc >= 98 %}
+        full
+      {% elif charge > 10 %}
+        charging
+      {% elif discharge > 10 %}
+        discharging
+      {% else %}
+        idle
+      {% endif %}
+    attributes:
+      charge_w: "{{ states('sensor.battery_charge_rate') | float(0) }}"
+      discharge_w: "{{ states('sensor.battery_discharge_rate') | float(0) }}"
+      soc_pct: "{{ states('sensor.ecoflow_soc') | float(0) }}"
+
+- sensor:
+    name: "Excess Solar Watts"
+    unique_id: excess_solar_watts
+    state: >
+      {{ [
+        states('sensor.sbfspot_power') | float(0) -
+        states('sensor.octopus_energy_electricity_21M0104038_1100021680150_instantaneous_consumption') | float(0),
+        0
+      ] | max }}
+    unit_of_measurement: "W"
+    device_class: power
+    state_class: measurement
+
+- sensor:
+    name: "Net Grid Watts"
+    unique_id: net_grid_watts
+    state: >
+      {{ states('sensor.octopus_energy_electricity_21M0104038_1100021680150_instantaneous_consumption') | float(0) -
+         states('sensor.sbfspot_power') | float(0) }}
+    unit_of_measurement: "W"
+    device_class: power
+    state_class: measurement
+    attributes:
+      is_exporting: >
+        {{ (state | float(0)) < 0 }}
+      export_w: >
+        {{ [0 - (state | float(0)), 0] | max }}
+
+- sensor:
+    name: "Self Consumption Percentage"
+    unique_id: self_consumption_pct
+    state: >
+      {% set solar = states('sensor.sbfspot_power') | float(0) %}
+      {% set home = states('sensor.octopus_energy_electricity_21M0104038_1100021680150_instantaneous_consumption') | float(0) %}
+      {% if solar > 0 %}
+        {{ (home * 100 / solar) | round(1) if home < solar else 100 }}
+      {% else %}
+        0
+      {% endif %}
+    unit_of_measurement: "%"
+    device_class: percentage
+    state_class: measurement
+
+- sensor:
+    name: "Divert Status"
+    unique_id: divert_status
+    state: >
+      {% set charge = states('sensor.battery_charge_rate') | float(0) %}
+      {% set tapo = states('switch.tapo_p110_power') %}
+      {% set is_cheap = states('sensor.is_cheap_rate') == 'true' %}
+      {% if charge > 50 and is_cheap %}
+        E7 charging
+      {% elif charge > 50 and tapo == 'on' %}
+        diverting
+      {% else %}
+        idle
+      {% endif %}
+    attributes:
+      charge_w: "{{ states('sensor.battery_charge_rate') | float(0) }}"
+      tapo_state: "{{ states('switch.tapo_p110_power') }}"
+      is_cheap_rate: "{{ states('sensor.is_cheap_rate') }}"
+
+- sensor:
+    name: "Solar Today kWh"
+    unique_id: solar_today_kwh
+    state: "{{ states('sensor.sbfspot_daily_yield') | float(0) }}"
+    unit_of_measurement: "kWh"
+    device_class: energy
+    state_class: measurement
+
+- sensor:
+    name: "Home Today kWh"
+    unique_id: home_today_kwh
+    state: "{{ states('sensor.octopus_energy_electricity_21M0104038_1100021680150_daily_consumption') | float(0) }}"
+    unit_of_measurement: "kWh"
+    device_class: energy
+    state_class: measurement
+
+- sensor:
+    name: "Grid Export Today kWh"
+    unique_id: grid_export_today_kwh
+    state: >
+      {% set solar = states('sensor.solar_today_kwh') | float(0) %}
+      {% set home = states('sensor.home_today_kwh') | float(0) %}
+      {{ [solar - home, 0] | max }}
+    unit_of_measurement: "kWh"
+    device_class: energy
+    state_class: measurement
+
+- sensor:
+    name: "Battery Stored Today kWh"
+    unique_id: battery_stored_today_kwh
+    platform: integration
+    source: sensor.battery_charge_rate
+    name: "Battery Stored Today"
+    unit_time: h
+    round: 2
+    unit_of_measurement: "kWh"
+    device_class: energy
+    state_class: measurement

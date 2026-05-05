@@ -1,0 +1,82 @@
+# ─── Home Assistant Energy Management Configuration ───────────────────────────
+# Copy this file and the accompanying files (sensors.yaml, automations.yaml,
+# dashboards/energy-flow.yaml) to your ~/.homeassistant/ directory.
+#
+# Integrations to install first:
+#   1. habuild/haos-sbfspot (HA Add-on Store) — SBFspot Bluetooth to SMA inverter
+#   2. hassio-ecoflow-cloud (HACS) — EcoFlow sensors, switches, number entities
+#   3. tapo_p110 (HACS) — Tapo P110 smart plug control
+#   4. HomeAssistant-OctopusEnergy (HACS) — Octopus rates + Home Mini 5-min data
+#   5. energy-flow-card-v2 (HACS) — animated energy flow visualization
+#   6. button-card (HACS) — custom dashboard buttons
+
+homeassistant:
+  # Ensure time zone is set correctly
+  # time_zone: "Europe/London"
+
+# ─── Lovelace ──────────────────────────────────────────────────────────────────
+frontend:
+  themes: !include_dir_merge_named themes
+  resources:
+    - url: /hacsfiles/energy-flow-card-v2/energy-flow-card.js
+      type: module
+    - url: /hacsfiles/button-card/button-card.js
+      type: module
+
+# ─── Octopus Energy ────────────────────────────────────────────────────────────
+octopus_energy:
+  api_key: !secret octopus_api_key
+  accounts:
+    - account_number: !secret octopus_account
+      meters:
+        - meter_serial: !secret octopus_meter_serial
+          mpan: !secret octopus_mpan
+
+# ─── Tapo P110 ─────────────────────────────────────────────────────────────────
+# Controls the smart plug on the EcoFlow AC input cable.
+# Must have a static IP reserved in your router DHCP.
+# Uses app-specific password (create in Tapo app > Settings > Privacy > App Password).
+tapo_p110:
+  hosts:
+    - host: !secret tapo_plug_ip
+      username: !secret tapo_username
+      password: !secret tapo_password
+      update_interval: 30
+  polling:
+    enabled: true
+    interval: 60
+
+# ─── Input numbers for configurable targets ────────────────────────────────────
+input_number:
+  max_charge_soc:
+    name: "Max Charge SOC Target"
+    min: 50
+    max: 100
+    step: 5
+    initial: 90
+    mode: slider
+  min_discharge_soc:
+    name: "Min Discharge SOC Target"
+    min: 10
+    max: 40
+    step: 5
+    initial: 20
+  solar_diversion_threshold:
+    name: "Solar Diversion Threshold (W)"
+    min: 50
+    max: 500
+    step: 10
+    initial: 100
+
+# ─── Recorder ──────────────────────────────────────────────────────────────────
+recorder:
+  auto_purge: true
+  purge_keep_days: 30
+  exclude:
+    entities:
+      - sensor.is_cheap_rate       # boolean, state changes frequently
+      - sensor.is_exporting        # boolean, state changes frequently
+
+# ─── Include fragments ─────────────────────────────────────────────────────────
+sensor: !include sensors.yaml
+automation: !include automations.yaml

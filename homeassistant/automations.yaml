@@ -1,0 +1,216 @@
+# ─── Automations — Energy Management ──────────────────────────────────────────
+# Entity IDs based on standard integration naming. Adjust if actual names differ.
+# Check Developer Tools > States after setup to confirm entity IDs.
+
+# ────────────────────────────────────────────────────────────────────────────────
+# E7 CHEAP RATE CHARGING (00:30 - 07:30 local)
+# ────────────────────────────────────────────────────────────────────────────────
+
+# Turn Tapo ON when E7 starts AND battery below max charge target
+- alias: "E7 Charging Start"
+  description: "Turn on Tapo plug at E7 start if battery below max charge level"
+  trigger:
+    - platform: state
+      entity_id: sensor.is_cheap_rate
+      to: "true"
+  condition:
+    - condition: numeric_state
+      entity_id: sensor.ecoflow_soc
+      below: 90
+  action:
+    - service: switch.turn_on
+      target:
+        entity_id: switch.tapo_p110_power
+  mode: single
+
+# Turn Tapo OFF when E7 ends (07:30)
+- alias: "E7 Charging End"
+  description: "Turn off Tapo plug when E7 window ends at 07:30"
+  trigger:
+    - platform: state
+      entity_id: sensor.is_cheap_rate
+      to: "false"
+  condition:
+    - condition: state
+      entity_id: switch.tapo_p110_power
+      state: "on"
+  action:
+    - service: switch.turn_off
+      target:
+        entity_id: switch.tapo_p110_power
+  mode: single
+
+# Turn Tapo OFF when battery reaches full during E7 (early stop)
+- alias: "E7 Charging Full Stop"
+  description: "Turn off Tapo when battery reaches 90% before E7 window closes"
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.ecoflow_soc
+      above: 90
+  condition:
+    - condition: state
+      entity_id: sensor.is_cheap_rate
+      state: "true"
+    - condition: state
+      entity_id: switch.tapo_p110_power
+      state: "on"
+  action:
+    - service: switch.turn_off
+      target:
+        entity_id: switch.tapo_p110_power
+  mode: single
+
+# ────────────────────────────────────────────────────────────────────────────────
+# SOLAR DIVERSION (daytime, outside E7)
+# ────────────────────────────────────────────────────────────────────────────────
+
+# Turn Tapo ON when excess solar detected AND battery below target AND NOT E7
+- alias: "Solar Diversion Start"
+  description: "Turn on Tapo plug for solar diversion when excess solar > 100W"
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.excess_solar_watts
+      above: 100
+  condition:
+    - condition: state
+      entity_id: sensor.is_cheap_rate
+      state: "false"
+    - condition: numeric_state
+      entity_id: sensor.ecoflow_soc
+      below: 90
+    - condition: state
+      entity_id: switch.tapo_p110_power
+      state: "off"
+  action:
+    - service: switch.turn_on
+      target:
+        entity_id: switch.tapo_p110_power
+  mode: single
+
+# Turn Tapo OFF when solar excess drops below threshold (hysteresis)
+- alias: "Solar Diversion End"
+  description: "Turn off Tapo plug when excess solar drops below 50W"
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.excess_solar_watts
+      below: 50
+  condition:
+    - condition: state
+      entity_id: switch.tapo_p110_power
+      state: "on"
+    - condition: state
+      entity_id: sensor.is_cheap_rate
+      state: "false"
+  action:
+    - service: switch.turn_off
+      target:
+        entity_id: switch.tapo_p110_power
+  mode: single
+
+# Safety: Turn Tapo OFF when battery reaches full during solar diversion
+- alias: "Solar Diversion Full Stop"
+  description: "Turn off Tapo when battery full during solar diversion"
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.ecoflow_soc
+      above: 90
+  condition:
+    - condition: state
+      entity_id: sensor.is_cheap_rate
+      state: "false"
+    - condition: state
+      entity_id: switch.tapo_p110_power
+      state: "on"
+  action:
+    - service: switch.turn_off
+      target:
+        entity_id: switch.tapo_p110_power
+  mode: single
+
+# Recharge trigger: If battery is low, divert at lower excess threshold
+- alias: "Low Battery Solar Recharge"
+  description: "Start diverting solar to battery when SOC < 25% and any excess solar"
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.ecoflow_soc
+      below: 25
+  condition:
+    - condition: numeric_state
+      entity_id: sensor.excess_solar_watts
+      above: 50
+    - condition: state
+      entity_id: switch.tapo_p110_power
+      state: "off"
+    - condition: state
+      entity_id: sensor.is_cheap_rate
+      state: "false"
+  action:
+    - service: switch.turn_on
+      target:
+        entity_id: switch.tapo_p110_power
+  mode: single
+
+# ────────────────────────────────────────────────────────────────────────────────
+# SAFETY CONTROLS
+# ────────────────────────────────────────────────────────────────────────────────
+
+# Low battery warning notification
+- alias: "Low Battery Warning"
+  description: "Send notification when battery reaches 20% SOC"
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.ecoflow_soc
+      below: 20
+  condition: []
+  action:
+    - service: notify.mobile_app_<your_phone>
+      data:
+        title: "Battery Low"
+        message: "EcoFlow battery at {{ states('sensor.ecoflow_soc') }}% — approaching minimum discharge level"
+
+# Restore Tapo state if it reboots unexpectedly
+- alias: "Tapo State Recovery"
+  description: "Restore correct Tapo state every 15 minutes after reboot"
+  trigger:
+    - platform: time_pattern
+      minutes: "/15"
+  condition: []
+  action:
+    - choose:
+        # E7 charging — keep Tapo ON during cheap rate if battery needs charge
+        - conditions:
+            - condition: state
+              entity_id: sensor.is_cheap_rate
+              state: "true"
+            - condition: numeric_state
+              entity_id: sensor.ecoflow_soc
+              below: 90
+            - condition: state
+              entity_id: switch.tapo_p110_power
+              state: "off"
+          sequence:
+            - service: switch.turn_on
+              target:
+                entity_id: switch.tapo_p110_power
+        # Solar diversion — keep Tapo ON if excess solar
+        - conditions:
+            - condition: state
+              entity_id: sensor.is_cheap_rate
+              state: "false"
+            - condition: numeric_state
+              entity_id: sensor.excess_solar_watts
+              above: 100
+            - condition: numeric_state
+              entity_id: sensor.ecoflow_soc
+              below: 90
+            - condition: state
+              entity_id: switch.tapo_p110_power
+              state: "off"
+          sequence:
+            - service: switch.turn_on
+              target:
+                entity_id: switch.tapo_p110_power
+        # Battery full or no excess — keep Tapo OFF
+        - default:
+          sequence: []
+  mode: single

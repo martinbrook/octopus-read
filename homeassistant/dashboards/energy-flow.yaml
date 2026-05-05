@@ -1,0 +1,154 @@
+# ─── Energy Flow Dashboard — Home Assistant Lovelace ──────────────────────────
+# Import via: Configuration > Dashboards > Import Dashboard YAML
+# Paste the contents of this file.
+#
+# Requires HACS integrations:
+#   - energy-flow-card-v2
+#   - button-card
+#
+# Entity ID note: These are the expected entity names from each integration.
+# After setup, check Developer Tools > States for actual names and adjust
+# entity IDs below if they differ.
+
+- type: custom:energy-flow-card-v2
+  title: Live Energy Flow
+  show_flow_arrows: true
+  show_numbers: true
+  animate:
+    flow: true
+    speed: 1
+  colors:
+    solar: "#F9E79F"
+    battery: "#F39C12"
+    grid_import: "#5B9BD5"
+    grid_export: "#00897B"
+    home: "#4CAF7D"
+    battery_charge: "#4CAF50"
+    battery_discharge: "#FF5722"
+  entities:
+    solar_panel:
+      entity: sensor.sbfspot_power
+      name: Solar Panels
+      unit: W
+    battery:
+      entity: sensor.ecoflow_soc
+      name: Battery
+      unit: "%"
+      charging: sensor.battery_charge_rate
+      discharging: sensor.battery_discharge_rate
+    grid:
+      entity: sensor.net_grid_watts
+      name: Grid
+      unit: W
+      import: sensor.octopus_energy_electricity_21M0104038_1100021680150_instantaneous_consumption
+      export: sensor.excess_solar_watts
+    home:
+      entity: sensor.octopus_energy_electricity_21M0104038_1100021680150_instantaneous_consumption
+      name: Home
+      unit: W
+
+- type: gauge
+  entity: sensor.ecoflow_soc
+  name: Battery SOC
+  min: 0
+  max: 100
+  needle: true
+  severity:
+    red: 20
+    yellow: 50
+    green: 80
+
+- type: custom:button-card
+  entity: sensor.divert_status
+  name: Diversion Mode
+  show_state: true
+  show_icon: true
+  show_name: true
+  color: |
+    [[[
+      if (states['sensor.divert_status'].state === 'E7 charging') return '#F39C12';
+      if (states['sensor.divert_status'].state === 'diverting') return '#4CAF7D';
+      return '#9E9E9E';
+    ]]]
+  icon: |
+    [[[
+      if (states['sensor.divert_status'].state === 'E7 charging') return 'mdi:clock-alert';
+      if (states['sensor.divert_status'].state === 'diverting') return 'mdi:solar-power';
+      return 'mdi:pause-circle';
+    ]]]
+  styles:
+    name:
+      - font-size: 14px
+      - font-weight: bold
+    state:
+      - font-size: 12px
+
+- type: entities
+  title: Today's Energy (kWh)
+  entities:
+    - entity: sensor.solar_today_kwh
+      name: Solar Produced
+      icon: mdi:solar-power
+    - entity: sensor.home_today_kwh
+      name: Home Consumption
+      icon: mdi:home-circle
+    - entity: sensor.grid_export_today_kwh
+      name: Grid Exported
+      icon: mdi:arrow-up-bold-circle
+    - entity: sensor.battery_stored_today_kwh
+      name: Battery Stored
+      icon: mdi:battery-charging
+    - entity: sensor.self_consumption_pct
+      name: Self-Consumption
+      icon: mdi:percent
+
+- type: entities
+  title: Octopus Tariff
+  entities:
+    - entity: sensor.octopus_energy_electricity_21M0104038_1100021680150_current_rate
+      name: Current Rate
+    - entity: sensor.octopus_energy_electricity_21M0104038_1100021680150_next_rate
+      name: Next Rate
+    - entity: sensor.is_cheap_rate
+      name: E7 Active
+    - entity: sensor.is_exporting
+      name: Exporting Now
+
+- type: entities
+  title: Real-Time Power
+  entities:
+    - entity: sensor.sbfspot_power
+      name: Solar
+      unit: " W"
+      icon: mdi:solar-power
+    - entity: sensor.octopus_energy_electricity_21M0104038_1100021680150_instantaneous_consumption
+      name: Home
+      unit: " W"
+      icon: mdi:home-circle
+    - entity: sensor.net_grid_watts
+      name: Grid
+      unit: " W"
+      icon: mdi:transmission-tower
+    - entity: sensor.battery_charge_rate
+      name: Battery In
+      unit: " W"
+      icon: mdi:battery-charging
+    - entity: sensor.battery_discharge_rate
+      name: Battery Out
+      unit: " W"
+      icon: mdi:battery
+    - entity: sensor.excess_solar_watts
+      name: Excess Solar
+      unit: " W"
+      icon: mdi:solar-power
+
+- type: history-graph
+  title: Historical Trends
+  hours_to_show: 24
+  entities:
+    - sensor.ecoflow_soc
+    - sensor.battery_charge_rate
+    - sensor.battery_discharge_rate
+    - sensor.excess_solar_watts
+    - sensor.net_grid_watts
+    - sensor.self_consumption_pct
