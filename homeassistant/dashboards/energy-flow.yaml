@@ -40,10 +40,10 @@
       entity: sensor.net_grid_watts
       name: Grid
       unit: W
-      import: sensor.octopus_energy_electricity_21M0104038_1100021680150_instantaneous_consumption
+      import: sensor.home_consumption_watts
       export: sensor.excess_solar_watts
     home:
-      entity: sensor.octopus_energy_electricity_21M0104038_1100021680150_instantaneous_consumption
+      entity: sensor.home_consumption_watts
       name: Home
       unit: W
 
@@ -121,7 +121,7 @@
       name: Solar
       unit: " W"
       icon: mdi:solar-power
-    - entity: sensor.octopus_energy_electricity_21M0104038_1100021680150_instantaneous_consumption
+    - entity: sensor.home_consumption_watts
       name: Home
       unit: " W"
       icon: mdi:home-circle

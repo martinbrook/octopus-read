@@ -5,9 +5,11 @@
 #
 # Integration entity ID conventions:
 #   EcoFlow:       sensor.ecoflow_*   (hassio-ecoflow-cloud)
-#   Tapo P110:     sensor.tapo_p110_* (tapo_p110 HACS)
+#   Tapo P110:     switch.tapo_p110_* (tapo_p110 HACS)
 #   Octopus:       sensor.octopus_energy_electricity_<SERIAL>_<MPAN>_...
 #   SBFspot:       sensor.sbfspot_*  (habuild/haos-sbfspot addon)
+#   Shelly EM:     sensor.shelly_<hex_id>_power (built-in Shelly, Channel 1 CT = house main)
+#     → Check Developer Tools > States after Shelly install to confirm the exact entity ID.
 
 - sensor:
     name: "Is Cheap Rate"
@@ -31,14 +33,13 @@
     name: "Is Exporting"
     unique_id: is_exporting
     state: >
-      {% set solar = states('sensor.sbfspot_power') | float(0) %}
-      {% set home = states('sensor.octopus_energy_electricity_21M0104038_1100021680150_instantaneous_consumption') | float(0) %}
-      {{ solar > home + 20 }}
+      {# Replace sensor.shelly_em_x_power with actual Shelly entity after install #}
+      {% set grid = states('sensor.shelly_em_x_power') | float(0) %}
+      {{ grid < -20 }}
     attributes:
-      solar_w: "{{ states('sensor.sbfspot_power') | float(0) }}"
-      home_w: "{{ states('sensor.octopus_energy_electricity_21M0104038_1100021680150_instantaneous_consumption') | float(0) }}"
+      grid_w: "{{ states('sensor.shelly_em_x_power') | float(0) }}"
       excess_w: >
-        {{ [states('sensor.sbfspot_power') | float(0) - states('sensor.octopus_energy_electricity_21M0104038_1100021680150_instantaneous_consumption') | float(0) - 20, 0] | max }}
+        {{ [0 - (states('sensor.shelly_em_x_power') | float(0)) - 20, 0] | max }}
 
 - sensor:
     name: "Battery Charge Rate"
@@ -81,9 +82,10 @@
     name: "Excess Solar Watts"
     unique_id: excess_solar_watts
     state: >
+      {# Negative grid = exporting. Excess = -(grid) when grid is negative #}
+      {# Replace sensor.shelly_em_x_power with actual Shelly entity after install #}
       {{ [
-        states('sensor.sbfspot_power') | float(0) -
-        states('sensor.octopus_energy_electricity_21M0104038_1100021680150_instantaneous_consumption') | float(0),
+        0 - (states('sensor.shelly_em_x_power') | float(0)),
         0
       ] | max }}
     unit_of_measurement: "W"
@@ -94,8 +96,9 @@
     name: "Net Grid Watts"
     unique_id: net_grid_watts
     state: >
-      {{ states('sensor.octopus_energy_electricity_21M0104038_1100021680150_instantaneous_consumption') | float(0) -
-         states('sensor.sbfspot_power') | float(0) }}
+      {# Shelly EM Channel 1 on house main: positive = importing, negative = exporting #}
+      {# Replace sensor.shelly_em_x_power with actual Shelly entity after install #}
+      {{ states('sensor.shelly_em_x_power') | float(0) }}
     unit_of_measurement: "W"
     device_class: power
     state_class: measurement
@@ -106,11 +109,25 @@
         {{ [0 - (state | float(0)), 0] | max }}
 
 - sensor:
+    name: "Home Consumption Watts"
+    unique_id: home_consumption_watts
+    state: >
+      {# Whole-house consumption = net_grid + solar (clamped to positive) #}
+      {{ [
+        (states('sensor.shelly_em_x_power') | float(0)) +
+        (states('sensor.sbfspot_power') | float(0)),
+        0
+      ] | max }}
+    unit_of_measurement: "W"
+    device_class: power
+    state_class: measurement
+
+- sensor:
     name: "Self Consumption Percentage"
     unique_id: self_consumption_pct
     state: >
       {% set solar = states('sensor.sbfspot_power') | float(0) %}
-      {% set home = states('sensor.octopus_energy_electricity_21M0104038_1100021680150_instantaneous_consumption') | float(0) %}
+      {% set home = states('sensor.home_consumption_watts') | float(0) %}
       {% if solar > 0 %}
         {{ (home * 100 / solar) | round(1) if home < solar else 100 }}
       {% else %}

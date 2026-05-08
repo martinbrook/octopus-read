@@ -6,9 +6,10 @@
 #   1. habuild/haos-sbfspot (HA Add-on Store) — SBFspot Bluetooth to SMA inverter
 #   2. hassio-ecoflow-cloud (HACS) — EcoFlow sensors, switches, number entities
 #   3. tapo_p110 (HACS) — Tapo P110 smart plug control
-#   4. HomeAssistant-OctopusEnergy (HACS) — Octopus rates + Home Mini 5-min data
-#   5. energy-flow-card-v2 (HACS) — animated energy flow visualization
-#   6. button-card (HACS) — custom dashboard buttons
+#   4. Shelly integration (built-in) — Shelly EM 120A power monitoring
+#   5. HomeAssistant-OctopusEnergy (HACS) — Octopus rates + tariff info
+#   6. energy-flow-card-v2 (HACS) — animated energy flow visualization
+#   7. button-card (HACS) — custom dashboard buttons
 
 homeassistant:
   # Ensure time zone is set correctly

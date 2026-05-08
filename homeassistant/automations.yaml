@@ -127,6 +127,68 @@
         entity_id: switch.tapo_p110_power
   mode: single
 
+# Dynamic AC charge rate based on excess solar (Shelly EM)
+- alias: "Dynamic AC Charge Rate"
+  description: "Set EcoFlow AC charge rate proportional to excess solar from Shelly EM"
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.excess_solar_watts
+      above: 30
+  condition:
+    - condition: numeric_state
+      entity_id: sensor.ecoflow_soc
+      below: 90
+  action:
+    - choose:
+        - conditions:
+            - condition: numeric_state
+              entity_id: sensor.excess_solar_watts
+              above: 800
+          sequence:
+            - service: number.set_value
+              target:
+                entity_id: number.ecoflow_ecoflow_delta_2_max_ac_charging_power
+              data:
+                value: 2400
+        - conditions:
+            - condition: numeric_state
+              entity_id: sensor.excess_solar_watts
+              above: 400
+          sequence:
+            - service: number.set_value
+              target:
+                entity_id: number.ecoflow_ecoflow_delta_2_max_ac_charging_power
+              data:
+                value: 1800
+        - conditions:
+            - condition: numeric_state
+              entity_id: sensor.excess_solar_watts
+              above: 200
+          sequence:
+            - service: number.set_value
+              target:
+                entity_id: number.ecoflow_ecoflow_delta_2_max_ac_charging_power
+              data:
+                value: 1000
+        - conditions:
+            - condition: numeric_state
+              entity_id: sensor.excess_solar_watts
+              above: 100
+          sequence:
+            - service: number.set_value
+              target:
+                entity_id: number.ecoflow_ecoflow_delta_2_max_ac_charging_power
+              data:
+                value: 500
+        - default:
+          sequence:
+            - service: number.set_value
+              target:
+                entity_id: number.ecoflow_ecoflow_delta_2_max_ac_charging_power
+              data:
+                value: 200
+  mode: single
+
 # Recharge trigger: If battery is low, divert at lower excess threshold
 - alias: "Low Battery Solar Recharge"
   description: "Start diverting solar to battery when SOC < 25% and any excess solar"
