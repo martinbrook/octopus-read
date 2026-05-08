@@ -7,11 +7,13 @@ Automate battery charging from the grid during cheap Economy 7 hours (00:30–07
 ## Architecture
 
 ```
-Solar (SMA SB 3000HF) → DB → Grid → Octopus Home Mini
+Solar (SMA SB 3000HF) → DB → Grid → Shelly EM 120A (CT1 = house main)
                                                   ├─ Tapo P110 ── EcoFlow Delta 2 Max ── Office loads
 ```
 
 Key constraints:
+- The Shelly EM 120A provides real-time net grid flow (positive = importing, negative = exporting) — this replaces the Octopus Home Mini as the primary power sensor
+- The Octopus Home Mini integration is retained for potential future use but is not the source for real-time power data
 - The EcoFlow is **not connected to the distribution board** — it only powers office loads plugged into its AC output sockets
 - The Tapo P110 sits between the wall socket and the EcoFlow AC input, acting as the charge gate
 - Solar diversion path: solar → SMA → grid export → Tapo → EcoFlow charges (uses export tariff, then re-discharges at a savings vs day rate)
@@ -25,7 +27,8 @@ Key constraints:
 | SMA SB 3000HF inverter (12 No Znsoline panels) | Solar generation, DB-wired, Bluetooth monitored via SBFspot |
 | EcoFlow Delta 2 Max + 2x Extra batteries | 6.144 kWh total, powers office loads |
 | Tapo P110 smart plug | Controls mains power to EcoFlow AC input |
-| Octopus Home Mini | 5-minute whole-house consumption data |
+| Shelly EM 120A | Real-time net grid flow (CT1 on house main) — primary power sensor |
+| Octopus Home Mini | 5-minute consumption data — retained but not used for real-time power |
 
 ### Software
 
@@ -34,7 +37,8 @@ Key constraints:
 | `habuild/haos-sbfspot` | HA Add-on Store | Bluetooth poll SMA inverter |
 | `hassio-ecoflow-cloud` | HACS `tolwi/hassio-ecoflow-cloud` | EcoFlow sensors, switches, number entities |
 | `tapo_p110` | HACS `sihks123/tapo_p110` | Tapo P110 LAN control |
-| `HomeAssistant-OctopusEnergy` | HACS `BottlecapDave/HomeAssistant-OctopusEnergy` | Octopus tariff + 5-min consumption data |
+| `HomeAssistant-OctopusEnergy` | HACS `BottlecapDave/HomeAssistant-OctopusEnergy` | Octopus tariff rates + consumption data |
+| `Shelly` (built-in) | Auto-discover via mDNS | Shelly EM 120A — net grid flow, voltage, current, energy |
 | `energy-flow-card-v2` | HACS | Animated energy flow visualisation |
 | `button-card` | HACS | Conditional formatting dashboard buttons |
 
@@ -55,6 +59,22 @@ so the EcoFlow charges from grid export revenue. This captures value from otherw
 When excess drops below 50W (cloud cover, hysteresis) or the battery reaches 90%, the Tapo turns OFF.
 
 If the battery SOC drops below 25%, the diversion threshold is lowered to 50W to encourage recharge.
+
+### Dynamic AC Charge Rate
+
+The `Dynamic AC Charge Rate` automation sets the EcoFlow `AC Charging Power` number entity based on
+excess solar (Shelly EM net grid + SBFspot solar):
+
+| Excess Solar | AC Charge Rate | Notes |
+|-------------|----------------|-------|
+| 0–99 W      | 200 W (minimum) | No excess solar, no grid-import charging |
+| 100–200 W   | 500 W | Small surplus |
+| 200–400 W   | 1000 W | Moderate surplus |
+| 400–800 W   | 1800 W | Strong surplus |
+| 800+ W      | 2400 W (max) | Maximum charge rate |
+
+Triggers when excess solar crosses 30 W threshold, condition battery < 90%. Returns to 200 W minimum
+when excess drops below 50 W or grid import occurs. Entity: `number.ecoflow_ecoflow_delta_2_max_ac_charging_power`
 
 ### Discharge
 
@@ -96,32 +116,41 @@ homeassistant/
 
 ## Implementation Steps
 
-1. Reserve static IP for Tapo P110 in router DHCP
+1. Reserve static IPs for Tapo P110 and Shelly EM in router DHCP
 2. Create Tapo app-specific password in Tapo app
-3. Install `habuild/haos-sbfspot` add-on, verify Bluetooth connection to SMA inverter
-4. Install `hassio-ecoflow-cloud` via HACS, configure EcoFlow credentials via UI
-5. Install `tapo_p110` via HACS, configure with LAN IP and app credentials
-6. Install `HomeAssistant-OctopusEnergy` via HACS, verify consumption + tariff entities
-7. Install `energy-flow-card-v2` and `button-card` via HACS
-8. Copy config files to `~/.homeassistant/`, fill in secrets
-9. Start/restart Home Assistant, verify entity IDs in Developer Tools > States
-10. Import dashboard YAML
-11. Enable automations, test each trigger manually
-12. One-day monitoring pass — verify all Tapo transitions and dashboard displays
-13. Tune thresholds based on observed behaviour
+3. Wire Shelly EM, CT1 clamp on house main feed (arrow toward house), install Shelly integration
+4. Verify Shelly EM readings: `sensor.shelly_<hex>_power`, `_voltage`, `_current` in Developer Tools > States
+5. Install `habuild/haos-sbfspot` add-on, verify Bluetooth connection to SMA inverter
+6. Install `hassio-ecoflow-cloud` via HACS, configure EcoFlow credentials via UI
+7. Install `tapo_p110` via HACS, configure with LAN IP and app credentials
+8. Install `HomeAssistant-OctopusEnergy` via HACS, verify tariff + consumption entities
+9. Install `energy-flow-card-v2` and `button-card` via HACS
+10. Copy config files to `~/.homeassistant/`, fill in secrets, replace `sensor.shelly_em_x_power` with actual entity ID
+11. Start/restart Home Assistant, verify entity IDs in Developer Tools > States
+12. Import dashboard YAML
+13. Enable automations, test each trigger manually including Dynamic AC Charge Rate
+14. One-day monitoring pass — verify all Tapo transitions, dynamic charge rate, and dashboard displays
+15. Tune thresholds based on observed behaviour
 
 ## Verification Checklist
 
+- [ ] Shelly EM installed, CT1 oriented toward house
+- [ ] `sensor.shelly_<hex>_power` shows correct net grid flow (positive = importing, negative = exporting)
+- [ ] Shelly voltage matches mains (~230 V)
 - [ ] SBFspot connects to SMA inverter (check add-on logs)
 - [ ] Tapo responds to on/off commands from HA UI
 - [ ] EcoFlow shows real-time SOC, power, all sensors in Developer Tools > States
+- [ ] `number.ecoflow_ecoflow_delta_2_max_ac_charging_power` entity exists and accepts `set_value`
 - [ ] Octopus shows current tariff rate matching Octopus app
-- [ ] Home Mini consumption updates every 5 minutes
 - [ ] All template sensors show numeric/boolean states (no "unknown")
+- [ ] `home_consumption_watts` shows reasonable values (~558 W night baseload)
+- [ ] `excess_solar_watts` > 0 during export periods
 - [ ] At 00:30: `is_cheap_rate` becomes true, Tapo turns on if battery < 90%
 - [ ] At 07:30: `is_cheap_rate` becomes false, Tapo turns off
 - [ ] Sunny day: excess > 100W triggers Tapo on (outside E7)
 - [ ] Cloud cover: excess < 50W turns Tapo off
 - [ ] Battery at 90%: Tapo turns off regardless of E7/solar
+- [ ] Dynamic AC charge rate adjusts: excess 800+W → 2400W, excess 400–800W → 1800W, etc.
+- [ ] No grid-import charging: excess < 50W → rate returns to 200W minimum
 - [ ] Dashboard displays all entities with correct values and colours
 - [ ] EcoFlow min_discharge_level = 20% (firmware-level protection)
