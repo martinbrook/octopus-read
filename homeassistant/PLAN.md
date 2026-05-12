@@ -65,16 +65,17 @@ If the battery SOC drops below 25%, the diversion threshold is lowered to 50W to
 The `Dynamic AC Charge Rate` automation sets the EcoFlow `AC Charging Power` number entity based on
 excess solar (Shelly EM net grid + SBFspot solar):
 
-| Excess Solar | AC Charge Rate | Notes |
-|-------------|----------------|-------|
-| 0–99 W      | 200 W (minimum) | No excess solar, no grid-import charging |
-| 100–200 W   | 500 W | Small surplus |
-| 200–400 W   | 1000 W | Moderate surplus |
-| 400–800 W   | 1800 W | Strong surplus |
-| 800+ W      | 2400 W (max) | Maximum charge rate |
+| Excess Solar | AC Charge Rate | Grid Import | Notes |
+|-------------|----------------|-------------|-------|
+| 0–99 W      | ≤ 200 W       | 0 W         | Below threshold, no charge |
+| 100–299 W   | ≤ 200 W       | 0 W         | Tier capped at excess solar |
+| 300–499 W   | ≤ 500 W       | 0 W         | Tier capped at excess solar |
+| 500–999 W   | ≤ 1000 W      | 0 W         | Tier capped at excess solar |
+| 1000–1499 W | ≤ 1500 W      | 0 W         | Tier capped at excess solar |
+| 1500+ W     | ≤ 2000 W      | 0 W         | Max tier, capped at excess solar |
 
-Triggers when excess solar crosses 30 W threshold, condition battery < 90%. Returns to 200 W minimum
-when excess drops below 50 W or grid import occurs. Entity: `number.ecoflow_ecoflow_delta_2_max_ac_charging_power`
+Rate = `min(tier_value, excess_solar_watts)` — zero grid import guaranteed. Triggers when excess solar
+crosses 30 W threshold, condition battery < 90%. Entity: `number.ecoflow_ecoflow_delta_2_max_ac_charging_power`
 
 ### Discharge
 
@@ -150,7 +151,7 @@ homeassistant/
 - [ ] Sunny day: excess > 100W triggers Tapo on (outside E7)
 - [ ] Cloud cover: excess < 50W turns Tapo off
 - [ ] Battery at 90%: Tapo turns off regardless of E7/solar
-- [ ] Dynamic AC charge rate adjusts: excess 800+W → 2400W, excess 400–800W → 1800W, etc.
+- [ ] Dynamic AC charge rate adjusts: always ≤ excess solar, zero grid import, max 2000 W
 - [ ] No grid-import charging: excess < 50W → rate returns to 200W minimum
 - [ ] Dashboard displays all entities with correct values and colours
 - [ ] EcoFlow min_discharge_level = 20% (firmware-level protection)

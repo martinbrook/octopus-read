@@ -143,50 +143,55 @@
         - conditions:
             - condition: numeric_state
               entity_id: sensor.excess_solar_watts
-              above: 800
+              above: 1500
           sequence:
             - service: number.set_value
               target:
                 entity_id: number.ecoflow_ecoflow_delta_2_max_ac_charging_power
               data:
-                value: 2400
+                value: >
+                  {{ [2000, states('sensor.excess_solar_watts') | int(0)] | min }}
         - conditions:
             - condition: numeric_state
               entity_id: sensor.excess_solar_watts
-              above: 400
+              above: 1000
           sequence:
             - service: number.set_value
               target:
                 entity_id: number.ecoflow_ecoflow_delta_2_max_ac_charging_power
               data:
-                value: 1800
+                value: >
+                  {{ [1500, states('sensor.excess_solar_watts') | int(0)] | min }}
         - conditions:
             - condition: numeric_state
               entity_id: sensor.excess_solar_watts
-              above: 200
+              above: 500
           sequence:
             - service: number.set_value
               target:
                 entity_id: number.ecoflow_ecoflow_delta_2_max_ac_charging_power
               data:
-                value: 1000
+                value: >
+                  {{ [1000, states('sensor.excess_solar_watts') | int(0)] | min }}
         - conditions:
             - condition: numeric_state
               entity_id: sensor.excess_solar_watts
-              above: 100
+              above: 300
           sequence:
             - service: number.set_value
               target:
                 entity_id: number.ecoflow_ecoflow_delta_2_max_ac_charging_power
               data:
-                value: 500
+                value: >
+                  {{ [500, states('sensor.excess_solar_watts') | int(0)] | min }}
         - default:
           sequence:
             - service: number.set_value
               target:
                 entity_id: number.ecoflow_ecoflow_delta_2_max_ac_charging_power
               data:
-                value: 200
+                value: >
+                  {{ [200, states('sensor.excess_solar_watts') | int(0)] | min }}
   mode: single
 
 # Recharge trigger: If battery is low, divert at lower excess threshold

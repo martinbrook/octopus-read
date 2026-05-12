@@ -173,7 +173,7 @@ Manually trigger each automation to verify correct behaviour:
 | Set battery SOC above 90% while Tapo ON | Tapo turns OFF |
 | Set `sensor.excess_solar_watts` above 100 | Tapo turns ON (outside E7) |
 | Set battery SOC below 25% with excess solar > 50W | Tapo turns ON |
-| Set `sensor.excess_solar_watts` above 800 (EcoFlow < 90%) | AC charge rate jumps to 2400 W |
+| Set `sensor.excess_solar_watts` above 1500 (EcoFlow < 90%) | AC charge rate set to min(2000, excess_solar) — never exceeds excess |
 | Set `sensor.excess_solar_watts` below 50 (EcoFlow < 90%) | AC charge rate drops to 200 W |
 
 ## Step 10 — One-Day Monitoring Pass
@@ -203,7 +203,7 @@ After the monitoring pass, adjust these if needed:
 | Min discharge SOC | `input_number.min_discharge_soc` | 20% | EcoFlow firmware also enforces this |
 | Solar diversion threshold | `input_number.solar_diversion_threshold` | 100 W | Increase if Tapo toggles too often |
 | E7 start threshold | `sensors.yaml` line 21 | 30 min (00:30) | Adjust for BST/GMT if needed |
-| AC charge tiers | `automations.yaml` | 200/500/1000/1800/2400 W | Adjust thresholds or rates as needed |
+| AC charge tiers | `automations.yaml` | min(tier, excess_solar): 200/500/1000/1500/2000 W | Adjust tier thresholds or max as needed |
 
 ## Troubleshooting
 
