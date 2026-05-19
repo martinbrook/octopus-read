@@ -7,17 +7,6 @@ octopus_energy:
         - meter_serial: !secret octopus_meter_serial
           mpan: !secret octopus_mpan
 
-# ─── Tapo P110 ─────────────────────────────────────────────────────────────────
-tapo_p110:
-  hosts:
-    - host: !secret tapo_plug_ip
-      username: !secret tapo_username
-      password: !secret tapo_password
-      update_interval: 30
-  polling:
-    enabled: true
-    interval: 60
-
 # ─── Input numbers ─────────────────────────────────────────────────────────────
 input_number:
   max_charge_soc:
@@ -50,4 +39,13 @@ recorder:
       - sensor.is_exporting
 
 # ─── Include fragments ─────────────────────────────────────────────────────────
-sensor: !include sensors.yaml
+template: !include sensors.yaml
+
+# ─── Integration-based sensor (energy integration) ────────────────────────────
+sensor:
+  - platform: integration
+    name: "Battery Stored Today"
+    unique_id: battery_stored_today_kwh
+    source: sensor.battery_charge_rate
+    unit_time: h
+    round: 2

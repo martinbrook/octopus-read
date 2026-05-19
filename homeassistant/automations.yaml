@@ -139,59 +139,59 @@
       entity_id: sensor.ecoflow_soc
       below: 90
   action:
-    - choose:
-        - conditions:
-            - condition: numeric_state
-              entity_id: sensor.excess_solar_watts
-              above: 1500
-          sequence:
-            - service: number.set_value
-              target:
-                entity_id: number.ecoflow_ecoflow_delta_2_max_ac_charging_power
-              data:
-                value: >
-                  '{{ [2000, states("sensor.excess_solar_watts") | int(0)] | min }}'
-        - conditions:
-            - condition: numeric_state
-              entity_id: sensor.excess_solar_watts
-              above: 1000
-          sequence:
-            - service: number.set_value
-              target:
-                entity_id: number.ecoflow_ecoflow_delta_2_max_ac_charging_power
-              data:
-                value: >
-                  '{{ [1500, states("sensor.excess_solar_watts") | int(0)] | min }}'
-        - conditions:
-            - condition: numeric_state
-              entity_id: sensor.excess_solar_watts
-              above: 500
-          sequence:
-            - service: number.set_value
-              target:
-                entity_id: number.ecoflow_ecoflow_delta_2_max_ac_charging_power
-              data:
-                value: >
-                  '{{ [1000, states("sensor.excess_solar_watts") | int(0)] | min }}'
-        - conditions:
-            - condition: numeric_state
-              entity_id: sensor.excess_solar_watts
-              above: 300
-          sequence:
-            - service: number.set_value
-              target:
-                entity_id: number.ecoflow_ecoflow_delta_2_max_ac_charging_power
-              data:
-                value: >
-                  '{{ [500, states("sensor.excess_solar_watts") | int(0)] | min }}'
-        - default:
-          sequence:
-            - service: number.set_value
-              target:
-                entity_id: number.ecoflow_ecoflow_delta_2_max_ac_charging_power
-              data:
-                value: >
-                  '{{ [200, states("sensor.excess_solar_watts") | int(0)] | min }}'
+    choose:
+      - conditions:
+          - condition: numeric_state
+            entity_id: sensor.excess_solar_watts
+            above: 1500
+        sequence:
+          - service: number.set_value
+            target:
+              entity_id: number.ecoflow_ecoflow_delta_2_max_ac_charging_power
+            data:
+              value: >
+                '{{ [2000, states("sensor.excess_solar_watts") | int(0)] | min }}'
+      - conditions:
+          - condition: numeric_state
+            entity_id: sensor.excess_solar_watts
+            above: 1000
+        sequence:
+          - service: number.set_value
+            target:
+              entity_id: number.ecoflow_ecoflow_delta_2_max_ac_charging_power
+            data:
+              value: >
+                '{{ [1500, states("sensor.excess_solar_watts") | int(0)] | min }}'
+      - conditions:
+          - condition: numeric_state
+            entity_id: sensor.excess_solar_watts
+            above: 500
+        sequence:
+          - service: number.set_value
+            target:
+              entity_id: number.ecoflow_ecoflow_delta_2_max_ac_charging_power
+            data:
+              value: >
+                '{{ [1000, states("sensor.excess_solar_watts") | int(0)] | min }}'
+      - conditions:
+          - condition: numeric_state
+            entity_id: sensor.excess_solar_watts
+            above: 300
+        sequence:
+          - service: number.set_value
+            target:
+              entity_id: number.ecoflow_ecoflow_delta_2_max_ac_charging_power
+            data:
+              value: >
+                '{{ [500, states("sensor.excess_solar_watts") | int(0)] | min }}'
+    default:
+      sequence:
+        - service: number.set_value
+          target:
+            entity_id: number.ecoflow_ecoflow_delta_2_max_ac_charging_power
+          data:
+            value: >
+              '{{ [200, states("sensor.excess_solar_watts") | int(0)] | min }}'
   mode: single
 
 # Recharge trigger: If battery is low, divert at lower excess threshold
@@ -244,38 +244,38 @@
       minutes: "/15"
   condition: []
   action:
-    - choose:
-        - conditions:
-            - condition: state
-              entity_id: sensor.is_cheap_rate
-              state: "true"
-            - condition: numeric_state
-              entity_id: sensor.ecoflow_soc
-              below: 90
-            - condition: state
+    choose:
+      - conditions:
+          - condition: state
+            entity_id: sensor.is_cheap_rate
+            state: "true"
+          - condition: numeric_state
+            entity_id: sensor.ecoflow_soc
+            below: 90
+          - condition: state
+            entity_id: switch.tapo_p110_power
+            state: "off"
+        sequence:
+          - service: switch.turn_on
+            target:
               entity_id: switch.tapo_p110_power
-              state: "off"
-          sequence:
-            - service: switch.turn_on
-              target:
-                entity_id: switch.tapo_p110_power
-        - conditions:
-            - condition: state
-              entity_id: sensor.is_cheap_rate
-              state: "false"
-            - condition: numeric_state
-              entity_id: sensor.excess_solar_watts
-              above: 100
-            - condition: numeric_state
-              entity_id: sensor.ecoflow_soc
-              below: 90
-            - condition: state
+      - conditions:
+          - condition: state
+            entity_id: sensor.is_cheap_rate
+            state: "false"
+          - condition: numeric_state
+            entity_id: sensor.excess_solar_watts
+            above: 100
+          - condition: numeric_state
+            entity_id: sensor.ecoflow_soc
+            below: 90
+          - condition: state
+            entity_id: switch.tapo_p110_power
+            state: "off"
+        sequence:
+          - service: switch.turn_on
+            target:
               entity_id: switch.tapo_p110_power
-              state: "off"
-          sequence:
-            - service: switch.turn_on
-              target:
-                entity_id: switch.tapo_p110_power
-        - default:
-          sequence: []
+    default:
+      sequence: []
   mode: single
