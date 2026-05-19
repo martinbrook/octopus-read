@@ -96,15 +96,17 @@ The firmware's `min_discharge_level = 20%` protects against deep discharge.
 
 ```
 homeassistant/
-├── configuration.yaml       # Main config: integrations, input numbers, recorder, Lovelace resources
+├── energy_management.yaml   # Package: integrations, input numbers, recorder, Lovelace resources
 ├── secrets.yaml             # API keys, Tapo credentials, meter details (not committed to git)
 ├── sensors.yaml             # Template sensors: is_cheap_rate, excess_solar, divert_status, etc.
-├── automations.yaml         # E7 start/end, solar diversion start/end, safety controls
+├── automations.yaml         # E7 start/end, solar diversion, dynamic AC charge rate, safety
 ├── dashboards/
 │   └── energy-flow.yaml     # Lovelace dashboard: energy flow, gauges, entity lists, history graphs
 └── DEPLOYMENT.md            # Step-by-step deployment guide
 └── PLAN.md                  # This file
 ```
+
+The `energy_management.yaml` package is loaded via `homeassistant: packages: energy: !include energy_management.yaml` in the existing `configuration.yaml`. This keeps the energy management setup separate from the existing Home Assistant configuration (TLS, default integrations, scripts, scenes).
 
 ## Energy Economics (Daily Estimate)
 
@@ -126,7 +128,7 @@ homeassistant/
 7. Install `tapo_p110` via HACS, configure with LAN IP and app credentials
 8. Install `HomeAssistant-OctopusEnergy` via HACS, verify tariff + consumption entities
 9. Install `energy-flow-card-v2` and `button-card` via HACS
-10. Copy config files to `~/.homeassistant/`, fill in secrets, replace `sensor.shelly_em_x_power` with actual entity ID
+10. SCP config files to HA server: `energy_management.yaml`, `sensors.yaml`, `automations.yaml`, `secrets.yaml`, `dashboards/` to `/config/`. Add `homeassistant: packages: energy: !include energy_management.yaml` to existing `configuration.yaml` on server. Replace `sensor.shelly_em_x_power` with actual entity ID.
 11. Start/restart Home Assistant, verify entity IDs in Developer Tools > States
 12. Import dashboard YAML
 13. Enable automations, test each trigger manually including Dynamic AC Charge Rate
