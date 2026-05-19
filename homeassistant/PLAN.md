@@ -98,7 +98,7 @@ The firmware's `min_discharge_level = 20%` protects against deep discharge.
 homeassistant/
 ├── energy_management.yaml   # Package: integrations, input numbers, recorder, Lovelace resources
 ├── secrets.yaml             # API keys, Tapo credentials, meter details (not committed to git)
-├── sensors.yaml             # Template sensors: is_cheap_rate, excess_solar, divert_status, etc.
+├── sensors.yaml             # Template sensors: is_cheap_rate, excess_solar, home_consumption, etc.
 ├── automations.yaml         # E7 start/end, solar diversion, dynamic AC charge rate, safety
 ├── dashboards/
 │   └── energy-flow.yaml     # Lovelace dashboard: energy flow, gauges, entity lists, history graphs

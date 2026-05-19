@@ -97,28 +97,37 @@ tapo_plug_ip: "PUT_YOUR_TAPO_PLUG_IP_HERE"
 
 **Warning:** Do not commit `secrets.yaml` to git. It is already gitignored.
 
-## Step 5 — Configure Main Home Assistant
+## Step 5 — Configure Home Assistant
 
-Copy the main config and fragment files:
+Copy the energy management package and fragment files to the HA server:
 
 ```bash
-cp homeassistant/configuration.yaml ~/.homeassistant/configuration.yaml
-cp homeassistant/sensors.yaml ~/.homeassistant/sensors.yaml
-cp homeassistant/automations.yaml ~/.homeassistant/automations.yaml
-cp -r homeassistant/dashboards ~/.homeassistant/dashboards
+scp homeassistant/energy_management.yaml homeassistant/sensors.yaml \
+    homeassistant/automations.yaml homeassistant/secrets.yaml \
+    vgrade@192.168.68.67:/config/
+
+scp -r homeassistant/dashboards vgrade@192.168.68.67:/config/
 ```
 
-Update `configuration.yaml` if any YAML keys already exist (HA will complain about duplicates).
-Only the integrations you actually need should be present — comment out unused ones.
+On the HA server, add the package reference to your existing `configuration.yaml`:
+
+```bash
+echo "" >> /config/configuration.yaml
+echo "homeassistant:" >> /config/configuration.yaml
+echo "  packages:" >> /config/configuration.yaml
+echo "    energy: !include energy_management.yaml" >> /config/configuration.yaml
+```
+
+This keeps your existing config (TLS, default integrations, scripts, scenes) intact.
 
 ## Step 6 — Start Home Assistant
 
 Start or restart Home Assistant. Watch the logs for errors:
 
 ```bash
-docker logs homeassistant    # if running in Docker
+ha core logs --tail 50     # HA OS terminal
 # or
-journalctl -f -u home-assistant   # if running as a service
+ha core restart            # to restart after config changes
 ```
 
 Look for:
