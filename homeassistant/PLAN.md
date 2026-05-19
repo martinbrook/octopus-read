@@ -36,7 +36,7 @@ Key constraints:
 |-------------|--------|---------|
 | `habuild/haos-sbfspot` | HA Add-on Store | Bluetooth poll SMA inverter |
 | `hassio-ecoflow-cloud` | HACS `tolwi/hassio-ecoflow-cloud` | EcoFlow sensors, switches, number entities |
-| `tapo_p110` | HACS `sihks123/tapo_p110` | Tapo P110 LAN control |
+| `tapo_p100` | HACS `petretiandrea/tapo_p100` | Tapo P110 LAN control (UI-configured, no YAML) |
 | `HomeAssistant-OctopusEnergy` | HACS `BottlecapDave/HomeAssistant-OctopusEnergy` | Octopus tariff rates + consumption data |
 | `Shelly` (built-in) | Auto-discover via mDNS | Shelly EM 120A — net grid flow, voltage, current, energy |
 | `energy-flow-card-v2` | HACS | Animated energy flow visualisation |
@@ -96,15 +96,19 @@ The firmware's `min_discharge_level = 20%` protects against deep discharge.
 
 ```
 homeassistant/
-├── energy_management.yaml   # Package: integrations, input numbers, recorder, Lovelace resources
-├── secrets.yaml             # API keys, Tapo credentials, meter details (not committed to git)
-├── sensors.yaml             # Template sensors: is_cheap_rate, excess_solar, home_consumption, etc.
+├── energy_management.yaml   # Package: integrations, input numbers, recorder, non-template sensor
+├── sensors.yaml             # Template sensors (included via template: !include)
 ├── automations.yaml         # E7 start/end, solar diversion, dynamic AC charge rate, safety
 ├── dashboards/
 │   └── energy-flow.yaml     # Lovelace dashboard: energy flow, gauges, entity lists, history graphs
-└── DEPLOYMENT.md            # Step-by-step deployment guide
+├── DEPLOYMENT.md            # Step-by-step deployment guide
 └── PLAN.md                  # This file
 ```
+
+Notes:
+- `secrets.yaml` is no longer used — Tapo credentials are configured via the HA UI (tapo_p100 integration)
+- `sensors.yaml` uses `template: !include` format (list of `- sensor:` blocks), not the deprecated `- platform: template` syntax
+- `battery_stored_today_kwh` uses `platform: integration` and is defined in `energy_management.yaml`, not `sensors.yaml`
 
 The `energy_management.yaml` package is loaded via `homeassistant: packages: energy: !include energy_management.yaml` in the existing `configuration.yaml`. This keeps the energy management setup separate from the existing Home Assistant configuration (TLS, default integrations, scripts, scenes).
 
@@ -119,26 +123,30 @@ The `energy_management.yaml` package is loaded via `homeassistant: packages: ene
 
 ## Implementation Steps
 
-1. Reserve static IPs for Tapo P110 and Shelly EM in router DHCP
-2. Create Tapo app-specific password in Tapo app
-3. Wire Shelly EM, CT1 clamp on house main feed (arrow toward house), install Shelly integration
-4. Verify Shelly EM readings: `sensor.shelly_<hex>_power`, `_voltage`, `_current` in Developer Tools > States
-5. Install `habuild/haos-sbfspot` add-on, verify Bluetooth connection to SMA inverter
-6. Install `hassio-ecoflow-cloud` via HACS, configure EcoFlow credentials via UI
-7. Install `tapo_p110` via HACS, configure with LAN IP and app credentials
-8. Install `HomeAssistant-OctopusEnergy` via HACS, verify tariff + consumption entities
-9. Install `energy-flow-card-v2` and `button-card` via HACS
-10. SCP config files to HA server: `energy_management.yaml`, `sensors.yaml`, `automations.yaml`, `secrets.yaml`, `dashboards/` to `/config/`. Add `homeassistant: packages: energy: !include energy_management.yaml` to existing `configuration.yaml` on server. Replace `sensor.shelly_em_x_power` with actual entity ID.
-11. Start/restart Home Assistant, verify entity IDs in Developer Tools > States
-12. Import dashboard YAML
-13. Enable automations, test each trigger manually including Dynamic AC Charge Rate
-14. One-day monitoring pass — verify all Tapo transitions, dynamic charge rate, and dashboard displays
-15. Tune thresholds based on observed behaviour
+1. Reserve static IP for Tapo P110 in router DHCP
+2. Create Tapo app-specific password in Tapo app (Settings > Privacy > App Password)
+3. Wire Shelly EM, CT1 clamp on house main feed (arrow toward house)
+4. Install Shelly integration (built-in, auto-discovered via mDNS)
+5. Verify Shelly EM readings: `sensor.shellyem_485519d6c52f_channel_1_power`, `_voltage` in Developer Tools > States
+6. Install `habuild/haos-sbfspot` add-on, verify Bluetooth connection to SMA inverter
+7. Install `hassio-ecoflow-cloud` via HACS, configure EcoFlow credentials via UI
+8. Install `tapo_p100` via HACS, configure Tapo credentials via UI (no YAML config)
+9. Install `HomeAssistant-OctopusEnergy` via HACS, configure API credentials via UI
+10. Install `energy-flow-card-v2` and `button-card` via HACS
+11. SCP config files to HA server: `energy_management.yaml`, `sensors.yaml`, `automations.yaml`, `dashboards/` to `/config/`
+12. Add `homeassistant: packages: energy: !include energy_management.yaml` to existing `configuration.yaml` on server
+13. Start/restart Home Assistant, verify entity IDs in Developer Tools > States
+14. Import dashboard YAML
+15. Find phone device ID (Settings > Devices & Services > Devices → `mobile_app_<name>`)
+16. Update `notify.mobile_app_<your_phone>` in automations.yaml with actual device ID
+17. Enable automations, test each trigger manually including Dynamic AC Charge Rate
+18. One-day monitoring pass — verify all Tapo transitions, dynamic charge rate, and dashboard displays
+19. Tune thresholds based on observed behaviour
 
 ## Verification Checklist
 
 - [ ] Shelly EM installed, CT1 oriented toward house
-- [ ] `sensor.shelly_<hex>_power` shows correct net grid flow (positive = importing, negative = exporting)
+- [ ] `sensor.shellyem_485519d6c52f_channel_1_power` shows correct net grid flow (positive = importing, negative = exporting)
 - [ ] Shelly voltage matches mains (~230 V)
 - [ ] SBFspot connects to SMA inverter (check add-on logs)
 - [ ] Tapo responds to on/off commands from HA UI
