@@ -12,6 +12,7 @@
 #     → Check Developer Tools > States after Shelly install to confirm the exact entity ID.
 
 - sensor:
+    platform: template
     name: "Is Cheap Rate"
     unique_id: is_cheap_rate
     state: >
@@ -30,6 +31,7 @@
       current_rate: "{{ states('sensor.octopus_energy_electricity_21M0104038_1100021680150_current_rate') }}"
 
 - sensor:
+    platform: template
     name: "Is Exporting"
     unique_id: is_exporting
     state: >
@@ -42,6 +44,7 @@
         {{ [0 - (states('sensor.shelly_em_x_power') | float(0)) - 20, 0] | max }}
 
 - sensor:
+    platform: template
     name: "Battery Charge Rate"
     unique_id: battery_charge_rate
     state: "{{ states('sensor.ecoflow_total_in_power') | float(0) }}"
@@ -50,6 +53,7 @@
     state_class: measurement
 
 - sensor:
+    platform: template
     name: "Battery Discharge Rate"
     unique_id: battery_discharge_rate
     state: "{{ states('sensor.ecoflow_total_out_power') | float(0) }}"
@@ -58,6 +62,7 @@
     state_class: measurement
 
 - sensor:
+    platform: template
     name: "Battery Status"
     unique_id: battery_status
     state: >
@@ -79,6 +84,7 @@
       soc_pct: "{{ states('sensor.ecoflow_soc') | float(0) }}"
 
 - sensor:
+    platform: template
     name: "Excess Solar Watts"
     unique_id: excess_solar_watts
     state: >
@@ -93,6 +99,7 @@
     state_class: measurement
 
 - sensor:
+    platform: template
     name: "Net Grid Watts"
     unique_id: net_grid_watts
     state: >
@@ -109,6 +116,7 @@
         {{ [0 - (state | float(0)), 0] | max }}
 
 - sensor:
+    platform: template
     name: "Home Consumption Watts"
     unique_id: home_consumption_watts
     state: >
@@ -123,6 +131,7 @@
     state_class: measurement
 
 - sensor:
+    platform: template
     name: "Self Consumption Percentage"
     unique_id: self_consumption_pct
     state: >
@@ -138,6 +147,7 @@
     state_class: measurement
 
 - sensor:
+    platform: template
     name: "Divert Status"
     unique_id: divert_status
     state: >
@@ -157,6 +167,7 @@
       is_cheap_rate: "{{ states('sensor.is_cheap_rate') }}"
 
 - sensor:
+    platform: template
     name: "Solar Today kWh"
     unique_id: solar_today_kwh
     state: "{{ states('sensor.sbfspot_daily_yield') | float(0) }}"
@@ -165,6 +176,7 @@
     state_class: measurement
 
 - sensor:
+    platform: template
     name: "Home Today kWh"
     unique_id: home_today_kwh
     state: "{{ states('sensor.octopus_energy_electricity_21M0104038_1100021680150_daily_consumption') | float(0) }}"
@@ -173,6 +185,7 @@
     state_class: measurement
 
 - sensor:
+    platform: template
     name: "Grid Export Today kWh"
     unique_id: grid_export_today_kwh
     state: >
@@ -184,11 +197,10 @@
     state_class: measurement
 
 - sensor:
-    name: "Battery Stored Today kWh"
-    unique_id: battery_stored_today_kwh
     platform: integration
-    source: sensor.battery_charge_rate
     name: "Battery Stored Today"
+    unique_id: battery_stored_today_kwh
+    source: sensor.battery_charge_rate
     unit_time: h
     round: 2
     unit_of_measurement: "kWh"

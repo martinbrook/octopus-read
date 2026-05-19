@@ -1,11 +1,3 @@
-# ─── Lovelace resources (HACS custom cards) ────────────────────────────────────
-frontend:
-  resources:
-    - url: /hacsfiles/energy-flow-card-v2/energy-flow-card.js
-      type: module
-    - url: /hacsfiles/button-card/button-card.js
-      type: module
-
 # ─── Octopus Energy ────────────────────────────────────────────────────────────
 octopus_energy:
   api_key: !secret octopus_api_key

@@ -150,7 +150,7 @@
                 entity_id: number.ecoflow_ecoflow_delta_2_max_ac_charging_power
               data:
                 value: >
-                  {{ [2000, states('sensor.excess_solar_watts') | int(0)] | min }}
+                  '{{ [2000, states("sensor.excess_solar_watts") | int(0)] | min }}'
         - conditions:
             - condition: numeric_state
               entity_id: sensor.excess_solar_watts
@@ -161,7 +161,7 @@
                 entity_id: number.ecoflow_ecoflow_delta_2_max_ac_charging_power
               data:
                 value: >
-                  {{ [1500, states('sensor.excess_solar_watts') | int(0)] | min }}
+                  '{{ [1500, states("sensor.excess_solar_watts") | int(0)] | min }}'
         - conditions:
             - condition: numeric_state
               entity_id: sensor.excess_solar_watts
@@ -172,7 +172,7 @@
                 entity_id: number.ecoflow_ecoflow_delta_2_max_ac_charging_power
               data:
                 value: >
-                  {{ [1000, states('sensor.excess_solar_watts') | int(0)] | min }}
+                  '{{ [1000, states("sensor.excess_solar_watts") | int(0)] | min }}'
         - conditions:
             - condition: numeric_state
               entity_id: sensor.excess_solar_watts
@@ -183,7 +183,7 @@
                 entity_id: number.ecoflow_ecoflow_delta_2_max_ac_charging_power
               data:
                 value: >
-                  {{ [500, states('sensor.excess_solar_watts') | int(0)] | min }}
+                  '{{ [500, states("sensor.excess_solar_watts") | int(0)] | min }}'
         - default:
           sequence:
             - service: number.set_value
@@ -191,7 +191,7 @@
                 entity_id: number.ecoflow_ecoflow_delta_2_max_ac_charging_power
               data:
                 value: >
-                  {{ [200, states('sensor.excess_solar_watts') | int(0)] | min }}
+                  '{{ [200, states("sensor.excess_solar_watts") | int(0)] | min }}'
   mode: single
 
 # Recharge trigger: If battery is low, divert at lower excess threshold
@@ -222,6 +222,7 @@
 # ────────────────────────────────────────────────────────────────────────────────
 
 # Low battery warning notification
+# Replace <your_phone> with your actual mobile app device ID
 - alias: "Low Battery Warning"
   description: "Send notification when battery reaches 20% SOC"
   trigger:
@@ -244,7 +245,6 @@
   condition: []
   action:
     - choose:
-        # E7 charging — keep Tapo ON during cheap rate if battery needs charge
         - conditions:
             - condition: state
               entity_id: sensor.is_cheap_rate
@@ -259,7 +259,6 @@
             - service: switch.turn_on
               target:
                 entity_id: switch.tapo_p110_power
-        # Solar diversion — keep Tapo ON if excess solar
         - conditions:
             - condition: state
               entity_id: sensor.is_cheap_rate
@@ -277,7 +276,6 @@
             - service: switch.turn_on
               target:
                 entity_id: switch.tapo_p110_power
-        # Battery full or no excess — keep Tapo OFF
         - default:
           sequence: []
   mode: single
