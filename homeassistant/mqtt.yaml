@@ -1,0 +1,18 @@
+# ─── MQTT Sensors — SBFspot Solar Data ────────────────────────────────────────
+
+sensor:
+  - name: "SBFspot Solar Power"
+    unique_id: sbfspot_solar_power
+    state_topic: "homeassistant/sbfspot_vgrade/sbfspot_2120089431"
+    value_template: "{{ value_json.PACTot | float(0) }}"
+    unit_of_measurement: "W"
+    device_class: power
+    state_class: measurement
+
+  - name: "SBFspot Daily Yield"
+    unique_id: sbfspot_daily_yield
+    state_topic: "homeassistant/sbfspot_vgrade/sbfspot_2120089431"
+    value_template: "{{ value_json.EToday | float(0) }}"
+    unit_of_measurement: "kWh"
+    device_class: energy
+    state_class: total_increasing

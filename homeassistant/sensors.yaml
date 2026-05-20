@@ -92,7 +92,7 @@
       state: >
         {{ [
           (states('sensor.shellyem_485519d6c52f_channel_1_power') | float(0)) +
-          (states('sensor.sbfspot_power') | float(0)),
+          (states('sensor.sbfspot_solar_power') | float(0)),
           0
         ] | max }}
       unit_of_measurement: "W"

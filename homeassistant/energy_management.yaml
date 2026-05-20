@@ -41,7 +41,7 @@ recorder:
 # ─── Include fragments ─────────────────────────────────────────────────────────
 template: !include sensors.yaml
 
-# ─── Integration-based sensor (energy integration) ────────────────────────────
+# ─── Integration sensors ───────────────────────────────────────────────────────
 sensor:
   - platform: integration
     name: "Battery Stored Today"
