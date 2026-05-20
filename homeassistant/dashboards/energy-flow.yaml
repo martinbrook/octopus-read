@@ -5,42 +5,40 @@ dashboard:
 views:
   - title: Energy
     cards:
-      - type: custom:energy-flow-card-v2
-        title: Live Energy Flow
-        show_flow_arrows: true
-        show_numbers: true
-        animate:
-          flow: true
-          speed: 1
-        colors:
-          solar: "#F9E79F"
-          battery: "#F39C12"
-          grid_import: "#5B9BD5"
-          grid_export: "#00897B"
-          home: "#4CAF7D"
-          battery_charge: "#4CAF50"
-          battery_discharge: "#FF5722"
+      - type: entities
+        title: Live Energy
         entities:
-          solar_panel:
-            entity: sensor.sbfspot_solar_power
-            name: Solar Panels
-            unit: W
-          battery:
-            entity: sensor.ecoflow_soc
-            name: Battery
+          - entity: sensor.sbfspot_solar_power
+            name: Solar Generation
+            unit: " W"
+            icon: mdi:solar-power
+          - entity: sensor.home_consumption_watts
+            name: Home Consumption
+            unit: " W"
+            icon: mdi:home-circle
+          - entity: sensor.excess_solar_watts
+            name: Excess Solar (Export)
+            unit: " W"
+            icon: mdi:solar-power
+          - entity: sensor.ecoflow_soc
+            name: Battery SOC
             unit: "%"
-            charging: sensor.battery_charge_rate
-            discharging: sensor.battery_discharge_rate
-          grid:
-            entity: sensor.net_grid_watts
-            name: Grid
-            unit: W
-            import: sensor.home_consumption_watts
-            export: sensor.excess_solar_watts
-          home:
-            entity: sensor.home_consumption_watts
-            name: Home
-            unit: W
+            icon: mdi:battery-charging-50
+          - entity: sensor.battery_charge_rate
+            name: Battery Charge Rate
+            unit: " W"
+            icon: mdi:battery-charging
+          - entity: sensor.battery_discharge_rate
+            name: Battery Discharge Rate
+            unit: " W"
+            icon: mdi:battery
+          - entity: sensor.net_grid_watts
+            name: Net Grid Import
+            unit: " W"
+            icon: mdi:transmission-tower
+          - entity: sensor.is_exporting
+            name: Exporting Now
+            icon: mdi:arrow-up-bold-circle
 
       - type: gauge
         entity: sensor.ecoflow_soc
@@ -53,30 +51,10 @@ views:
           yellow: 50
           green: 80
 
-      - type: custom:button-card
-        entity: sensor.divert_status
-        name: Diversion Mode
-        show_state: true
-        show_icon: true
-        show_name: true
-        color: |
-          [[[
-            if (states['sensor.divert_status'].state === 'E7 charging') return '#F39C12';
-            if (states['sensor.divert_status'].state === 'diverting') return '#4CAF7D';
-            return '#9E9E9E';
-          ]]]
-        icon: |
-          [[[
-            if (states['sensor.divert_status'].state === 'E7 charging') return 'mdi:clock-alert';
-            if (states['sensor.divert_status'].state === 'diverting') return 'mdi:solar-power';
-            return 'mdi:pause-circle';
-          ]]]
-        styles:
-          name:
-            - font-size: 14px
-            - font-weight: bold
-          state:
-            - font-size: 12px
+      - type: entities
+        entities:
+          - entity: sensor.divert_status
+            name: Diversion Mode
 
       - type: entities
         title: Today's Energy (kWh)
