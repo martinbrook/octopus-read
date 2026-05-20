@@ -27,7 +27,7 @@
     battery_discharge: "#FF5722"
   entities:
     solar_panel:
-      entity: sensor.sbfspot_power
+      entity: sensor.sbfspot_solar_power
       name: Solar Panels
       unit: W
     battery:
@@ -117,7 +117,7 @@
 - type: entities
   title: Real-Time Power
   entities:
-    - entity: sensor.sbfspot_power
+    - entity: sensor.sbfspot_solar_power
       name: Solar
       unit: " W"
       icon: mdi:solar-power
