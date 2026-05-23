@@ -47,7 +47,7 @@ views:
         max: 100
         needle: true
         severity:
-          red: 20
+          red: 15
           yellow: 50
           green: 80
 

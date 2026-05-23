@@ -46,10 +46,12 @@
     - unique_id: battery_status
       name: "Battery Status"
       state: >
+        {% set max = states('input_number.max_charge_soc') | float(80) %}
+        {% set min = states('input_number.min_discharge_soc') | float(15) %}
         {% set soc = states('sensor.delta_battery_level') | float(0) %}
         {% set charge = states('sensor.battery_charge_rate') | float(0) %}
         {% set discharge = states('sensor.battery_discharge_rate') | float(0) %}
-        {% if soc >= 98 %}
+        {% if soc >= max - 2 %}
           full
         {% elif charge > 10 %}
           charging
@@ -62,6 +64,8 @@
         charge_w: "{{ states('sensor.battery_charge_rate') | float(0) }}"
         discharge_w: "{{ states('sensor.battery_discharge_rate') | float(0) }}"
         soc_pct: "{{ states('sensor.delta_battery_level') | float(0) }}"
+        max_soc: "{{ states('input_number.max_charge_soc') | float(80) }}"
+        min_soc: "{{ states('input_number.min_discharge_soc') | float(15) }}"
 
     - unique_id: excess_solar_watts
       name: "Excess Solar Watts"

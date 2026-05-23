@@ -14,14 +14,14 @@ input_number:
     min: 50
     max: 100
     step: 5
-    initial: 90
+    initial: 80
     mode: slider
   min_discharge_soc:
     name: "Min Discharge SOC Target"
     min: 10
     max: 40
     step: 5
-    initial: 20
+    initial: 15
   solar_diversion_threshold:
     name: "Solar Diversion Threshold (W)"
     min: 50

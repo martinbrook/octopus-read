@@ -14,9 +14,9 @@
       entity_id: sensor.is_cheap_rate
       to: "true"
   condition:
-    - condition: numeric_state
-      entity_id: sensor.delta_battery_level
-      below: 90
+    - condition: template
+      value_template: >
+        {{ states('sensor.delta_battery_level') | float(0) < states('input_number.max_charge_soc') | float(80) }}
   action:
     - service: switch.turn_on
       target:
@@ -42,11 +42,11 @@
 
 # Turn Tapo OFF when battery reaches full during E7 (early stop)
 - alias: "E7 Charging Full Stop"
-  description: "Turn off Tapo when battery reaches 90% before E7 window closes"
+  description: "Turn off Tapo when battery reaches max charge before E7 window closes"
   trigger:
     - platform: numeric_state
       entity_id: sensor.delta_battery_level
-      above: 90
+      above: 80
   condition:
     - condition: state
       entity_id: sensor.is_cheap_rate
@@ -75,9 +75,9 @@
     - condition: state
       entity_id: sensor.is_cheap_rate
       state: "false"
-    - condition: numeric_state
-      entity_id: sensor.delta_battery_level
-      below: 90
+    - condition: template
+      value_template: >
+        {{ states('sensor.delta_battery_level') | float(0) < states('input_number.max_charge_soc') | float(80) }}
     - condition: state
       entity_id: switch.tapo_p110_power
       state: "off"
@@ -113,7 +113,7 @@
   trigger:
     - platform: numeric_state
       entity_id: sensor.delta_battery_level
-      above: 90
+      above: 80
   condition:
     - condition: state
       entity_id: sensor.is_cheap_rate
@@ -127,6 +127,60 @@
         entity_id: switch.tapo_p110_power
   mode: single
 
+# ────────────────────────────────────────────────────────────────────────────────
+# SOLAR PASS-THROUGH (battery full, excess solar powers office directly)
+# ────────────────────────────────────────────────────────────────────────────────
+
+# Turn Tapo ON when battery is full AND excess solar detected AND NOT E7
+- alias: "Solar Pass-Through Start"
+  description: "Turn on Tapo plug when battery is full and excess solar available to power office loads directly"
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.excess_solar_watts
+      above: 50
+  condition:
+    - condition: template
+      value_template: >
+        {{ states('sensor.delta_battery_level') | float(0) >= states('input_number.max_charge_soc') | float(80) }}
+    - condition: state
+      entity_id: switch.tapo_p110_power
+      state: "off"
+    - condition: state
+      entity_id: sensor.is_cheap_rate
+      state: "false"
+  action:
+    - service: switch.turn_on
+      target:
+        entity_id: switch.tapo_p110_power
+  mode: single
+
+# Turn Tapo OFF when battery drops below full OR solar excess gone (NOT E7)
+- alias: "Solar Pass-Through End"
+  description: "Turn off Tapo plug when battery drops below max charge or solar excess disappears"
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.delta_battery_level
+      below: 80
+    - platform: numeric_state
+      entity_id: sensor.excess_solar_watts
+      below: 50
+  condition:
+    - condition: state
+      entity_id: switch.tapo_p110_power
+      state: "on"
+    - condition: state
+      entity_id: sensor.is_cheap_rate
+      state: "false"
+  action:
+    - service: switch.turn_off
+      target:
+        entity_id: switch.tapo_p110_power
+  mode: single
+
+# ────────────────────────────────────────────────────────────────────────────────
+# DYNAMIC AC CHARGE RATE (battery not full, excess solar sets charge speed)
+# ────────────────────────────────────────────────────────────────────────────────
+
 # Dynamic AC charge rate based on excess solar (Shelly EM)
 - alias: "Dynamic AC Charge Rate"
   description: "Set EcoFlow AC charge rate proportional to excess solar from Shelly EM"
@@ -135,9 +189,9 @@
       entity_id: sensor.excess_solar_watts
       above: 30
   condition:
-    - condition: numeric_state
-      entity_id: sensor.delta_battery_level
-      below: 90
+    - condition: template
+      value_template: >
+        {{ states('sensor.delta_battery_level') | float(0) < states('input_number.max_charge_soc') | float(80) }}
   action:
     choose:
       - conditions:
@@ -196,11 +250,11 @@
 
 # Recharge trigger: If battery is low, divert at lower excess threshold
 - alias: "Low Battery Solar Recharge"
-  description: "Start diverting solar to battery when SOC < 25% and any excess solar"
+  description: "Start diverting solar to battery when SOC below min discharge and excess solar available"
   trigger:
-    - platform: numeric_state
-      entity_id: sensor.delta_battery_level
-      below: 25
+    - platform: template
+      value_template: >
+        {{ states('sensor.delta_battery_level') | float(0) < states('input_number.min_discharge_soc') | float(15) }}
   condition:
     - condition: numeric_state
       entity_id: sensor.excess_solar_watts
@@ -224,11 +278,11 @@
 # Low battery warning notification
 # Replace <your_phone> with your actual mobile app device ID
 - alias: "Low Battery Warning"
-  description: "Send notification when battery reaches 20% SOC"
+  description: "Send notification when battery drops below min discharge SOC"
   trigger:
-    - platform: numeric_state
-      entity_id: sensor.delta_battery_level
-      below: 20
+    - platform: template
+      value_template: >
+        {{ states('sensor.delta_battery_level') | float(0) < states('input_number.min_discharge_soc') | float(15) }}
   condition: []
   action:
     - service: notify.mobile_app_<your_phone>
@@ -249,9 +303,9 @@
           - condition: state
             entity_id: sensor.is_cheap_rate
             state: "true"
-          - condition: numeric_state
-            entity_id: sensor.delta_battery_level
-            below: 90
+          - condition: template
+            value_template: >
+              {{ states('sensor.delta_battery_level') | float(0) < states('input_number.max_charge_soc') | float(80) }}
           - condition: state
             entity_id: switch.tapo_p110_power
             state: "off"
@@ -266,9 +320,9 @@
           - condition: numeric_state
             entity_id: sensor.excess_solar_watts
             above: 100
-          - condition: numeric_state
-            entity_id: sensor.delta_battery_level
-            below: 90
+          - condition: template
+            value_template: >
+              {{ states('sensor.delta_battery_level') | float(0) < states('input_number.max_charge_soc') | float(80) }}
           - condition: state
             entity_id: switch.tapo_p110_power
             state: "off"
