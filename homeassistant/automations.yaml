@@ -12,7 +12,7 @@
   trigger:
     - platform: state
       entity_id: sensor.is_cheap_rate
-      to: "true"
+      to: "True"
   condition:
     - condition: template
       value_template: >
@@ -29,7 +29,7 @@
   trigger:
     - platform: state
       entity_id: sensor.is_cheap_rate
-      to: "false"
+      to: "False"
   condition:
     - condition: state
       entity_id: switch.tapo_p110_power
@@ -48,9 +48,8 @@
       entity_id: sensor.delta_battery_level
       above: 80
   condition:
-    - condition: state
-      entity_id: sensor.is_cheap_rate
-      state: "true"
+    - condition: template
+      value_template: "{{ states('sensor.is_cheap_rate') | lower == 'true' }}"
     - condition: state
       entity_id: switch.tapo_p110_power
       state: "on"
@@ -72,9 +71,8 @@
       entity_id: sensor.excess_solar_watts
       above: 100
   condition:
-    - condition: state
-      entity_id: sensor.is_cheap_rate
-      state: "false"
+    - condition: template
+      value_template: "{{ states('sensor.is_cheap_rate') | lower == 'false' }}"
     - condition: template
       value_template: >
         {{ states('sensor.delta_battery_level') | float(0) < states('input_number.max_charge_soc') | float(80) }}
@@ -98,9 +96,8 @@
     - condition: state
       entity_id: switch.tapo_p110_power
       state: "on"
-    - condition: state
-      entity_id: sensor.is_cheap_rate
-      state: "false"
+    - condition: template
+      value_template: "{{ states('sensor.is_cheap_rate') | lower == 'false' }}"
   action:
     - service: switch.turn_off
       target:
@@ -115,9 +112,8 @@
       entity_id: sensor.delta_battery_level
       above: 80
   condition:
-    - condition: state
-      entity_id: sensor.is_cheap_rate
-      state: "false"
+    - condition: template
+      value_template: "{{ states('sensor.is_cheap_rate') | lower == 'false' }}"
     - condition: state
       entity_id: switch.tapo_p110_power
       state: "on"
@@ -145,9 +141,8 @@
     - condition: state
       entity_id: switch.tapo_p110_power
       state: "off"
-    - condition: state
-      entity_id: sensor.is_cheap_rate
-      state: "false"
+    - condition: template
+      value_template: "{{ states('sensor.is_cheap_rate') | lower == 'false' }}"
   action:
     - service: switch.turn_on
       target:
@@ -167,9 +162,8 @@
     - condition: state
       entity_id: switch.tapo_p110_power
       state: "on"
-    - condition: state
-      entity_id: sensor.is_cheap_rate
-      state: "false"
+    - condition: template
+      value_template: "{{ states('sensor.is_cheap_rate') | lower == 'false' }}"
     - condition: template
       value_template: >
         {{ states('sensor.delta_battery_level') | float(0) < states('input_number.max_charge_soc') | float(80) or states('sensor.excess_solar_watts') | float(0) < 30 }}
@@ -264,9 +258,8 @@
     - condition: state
       entity_id: switch.tapo_p110_power
       state: "off"
-    - condition: state
-      entity_id: sensor.is_cheap_rate
-      state: "false"
+    - condition: template
+      value_template: "{{ states('sensor.is_cheap_rate') | lower == 'false' }}"
   action:
     - service: switch.turn_on
       target:
@@ -302,9 +295,8 @@
   action:
     choose:
       - conditions:
-          - condition: state
-            entity_id: sensor.is_cheap_rate
-            state: "true"
+          - condition: template
+            value_template: "{{ states('sensor.is_cheap_rate') | lower == 'true' }}"
           - condition: template
             value_template: >
               {{ states('sensor.delta_battery_level') | float(0) < states('input_number.max_charge_soc') | float(80) }}
@@ -316,9 +308,8 @@
             target:
               entity_id: switch.tapo_p110_power
       - conditions:
-          - condition: state
-            entity_id: sensor.is_cheap_rate
-            state: "false"
+          - condition: template
+            value_template: "{{ states('sensor.is_cheap_rate') | lower == 'false' }}"
           - condition: numeric_state
             entity_id: sensor.excess_solar_watts
             above: 100
