@@ -8,12 +8,12 @@
         {% set h = now().hour %}
         {% set m = now().minute %}
         {% set mins = h * 60 + m %}
-        {{ mins >= 30 and mins < 450 }}
+        {{ mins >= 90 and mins < 510 }}
       attributes:
         e7_ends_in: >
           {% set mins = now().hour * 60 + now().minute %}
-          {% if mins >= 30 and mins < 450 %}
-            {{ ((450 - mins) // 60) }}h {{ (450 - mins) % 60 }}m
+          {% if mins >= 90 and mins < 510 %}
+            {{ ((510 - mins) // 60) }}h {{ (510 - mins) % 60 }}m
           {% else %}
             N/A
           {% endif %}

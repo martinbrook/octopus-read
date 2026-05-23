@@ -3,7 +3,7 @@
 # Check Developer Tools > States after setup to confirm entity IDs.
 
 # ────────────────────────────────────────────────────────────────────────────────
-# E7 CHEAP RATE CHARGING (00:30 - 07:30 local)
+# E7 CHEAP RATE CHARGING (01:30 - 08:30 local)
 # ────────────────────────────────────────────────────────────────────────────────
 
 # Turn Tapo ON when E7 starts AND battery below max charge target
@@ -23,9 +23,9 @@
         entity_id: switch.tapo_p110_power
   mode: single
 
-# Turn Tapo OFF when E7 ends (07:30)
+# Turn Tapo OFF when E7 ends (08:30)
 - alias: "E7 Charging End"
-  description: "Turn off Tapo plug when E7 window ends at 07:30"
+  description: "Turn off Tapo plug when E7 window ends at 08:30"
   trigger:
     - platform: state
       entity_id: sensor.is_cheap_rate
