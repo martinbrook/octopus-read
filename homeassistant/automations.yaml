@@ -160,10 +160,10 @@
   trigger:
     - platform: numeric_state
       entity_id: sensor.delta_battery_level
-      below: 80
+      below: 75
     - platform: numeric_state
       entity_id: sensor.excess_solar_watts
-      below: 50
+      below: 30
   condition:
     - condition: state
       entity_id: switch.tapo_p110_power
