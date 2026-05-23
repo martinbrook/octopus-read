@@ -158,9 +158,8 @@
 - alias: "Solar Pass-Through End"
   description: "Turn off Tapo plug when battery drops below max charge or solar excess disappears"
   trigger:
-    - platform: numeric_state
+    - platform: state
       entity_id: sensor.delta_battery_level
-      below: 75
     - platform: numeric_state
       entity_id: sensor.excess_solar_watts
       below: 30
@@ -171,6 +170,9 @@
     - condition: state
       entity_id: sensor.is_cheap_rate
       state: "false"
+    - condition: template
+      value_template: >
+        {{ states('sensor.delta_battery_level') | float(0) < states('input_number.max_charge_soc') | float(80) or states('sensor.excess_solar_watts') | float(0) < 30 }}
   action:
     - service: switch.turn_off
       target:
