@@ -15,7 +15,7 @@
       to: "true"
   condition:
     - condition: numeric_state
-      entity_id: sensor.ecoflow_soc
+      entity_id: sensor.delta_battery_level
       below: 90
   action:
     - service: switch.turn_on
@@ -45,7 +45,7 @@
   description: "Turn off Tapo when battery reaches 90% before E7 window closes"
   trigger:
     - platform: numeric_state
-      entity_id: sensor.ecoflow_soc
+      entity_id: sensor.delta_battery_level
       above: 90
   condition:
     - condition: state
@@ -76,7 +76,7 @@
       entity_id: sensor.is_cheap_rate
       state: "false"
     - condition: numeric_state
-      entity_id: sensor.ecoflow_soc
+      entity_id: sensor.delta_battery_level
       below: 90
     - condition: state
       entity_id: switch.tapo_p110_power
@@ -112,7 +112,7 @@
   description: "Turn off Tapo when battery full during solar diversion"
   trigger:
     - platform: numeric_state
-      entity_id: sensor.ecoflow_soc
+      entity_id: sensor.delta_battery_level
       above: 90
   condition:
     - condition: state
@@ -136,7 +136,7 @@
       above: 30
   condition:
     - condition: numeric_state
-      entity_id: sensor.ecoflow_soc
+      entity_id: sensor.delta_battery_level
       below: 90
   action:
     choose:
@@ -147,7 +147,7 @@
         sequence:
           - service: number.set_value
             target:
-              entity_id: number.ecoflow_ecoflow_delta_2_max_ac_charging_power
+              entity_id: number.delta_ac_charging_power
             data:
               value: >
                 '{{ [2000, states("sensor.excess_solar_watts") | int(0)] | min }}'
@@ -158,7 +158,7 @@
         sequence:
           - service: number.set_value
             target:
-              entity_id: number.ecoflow_ecoflow_delta_2_max_ac_charging_power
+              entity_id: number.delta_ac_charging_power
             data:
               value: >
                 '{{ [1500, states("sensor.excess_solar_watts") | int(0)] | min }}'
@@ -169,7 +169,7 @@
         sequence:
           - service: number.set_value
             target:
-              entity_id: number.ecoflow_ecoflow_delta_2_max_ac_charging_power
+              entity_id: number.delta_ac_charging_power
             data:
               value: >
                 '{{ [1000, states("sensor.excess_solar_watts") | int(0)] | min }}'
@@ -180,7 +180,7 @@
         sequence:
           - service: number.set_value
             target:
-              entity_id: number.ecoflow_ecoflow_delta_2_max_ac_charging_power
+              entity_id: number.delta_ac_charging_power
             data:
               value: >
                 '{{ [500, states("sensor.excess_solar_watts") | int(0)] | min }}'
@@ -188,7 +188,7 @@
       sequence:
         - service: number.set_value
           target:
-            entity_id: number.ecoflow_ecoflow_delta_2_max_ac_charging_power
+            entity_id: number.delta_ac_charging_power
           data:
             value: >
               '{{ [200, states("sensor.excess_solar_watts") | int(0)] | min }}'
@@ -199,7 +199,7 @@
   description: "Start diverting solar to battery when SOC < 25% and any excess solar"
   trigger:
     - platform: numeric_state
-      entity_id: sensor.ecoflow_soc
+      entity_id: sensor.delta_battery_level
       below: 25
   condition:
     - condition: numeric_state
@@ -227,14 +227,14 @@
   description: "Send notification when battery reaches 20% SOC"
   trigger:
     - platform: numeric_state
-      entity_id: sensor.ecoflow_soc
+      entity_id: sensor.delta_battery_level
       below: 20
   condition: []
   action:
     - service: notify.mobile_app_<your_phone>
       data:
         title: "Battery Low"
-        message: "EcoFlow battery at {{ states('sensor.ecoflow_soc') }}% — approaching minimum discharge level"
+        message: "EcoFlow battery at {{ states('sensor.delta_battery_level') }}% — approaching minimum discharge level"
 
 # Restore Tapo state if it reboots unexpectedly
 - alias: "Tapo State Recovery"
@@ -250,7 +250,7 @@
             entity_id: sensor.is_cheap_rate
             state: "true"
           - condition: numeric_state
-            entity_id: sensor.ecoflow_soc
+            entity_id: sensor.delta_battery_level
             below: 90
           - condition: state
             entity_id: switch.tapo_p110_power
@@ -267,7 +267,7 @@
             entity_id: sensor.excess_solar_watts
             above: 100
           - condition: numeric_state
-            entity_id: sensor.ecoflow_soc
+            entity_id: sensor.delta_battery_level
             below: 90
           - condition: state
             entity_id: switch.tapo_p110_power

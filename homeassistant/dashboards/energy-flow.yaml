@@ -20,7 +20,7 @@ views:
             name: Excess Solar (Export)
             unit: " W"
             icon: mdi:solar-power
-          - entity: sensor.ecoflow_soc
+          - entity: sensor.delta_battery_level
             name: Battery SOC
             unit: "%"
             icon: mdi:battery-charging-50
@@ -41,7 +41,7 @@ views:
             icon: mdi:arrow-up-bold-circle
 
       - type: gauge
-        entity: sensor.ecoflow_soc
+        entity: sensor.delta_battery_level
         name: Battery SOC
         min: 0
         max: 100
@@ -119,7 +119,7 @@ views:
         title: Historical Trends
         hours_to_show: 24
         entities:
-          - sensor.ecoflow_soc
+          - sensor.delta_battery_level
           - sensor.battery_charge_rate
           - sensor.battery_discharge_rate
           - sensor.excess_solar_watts
