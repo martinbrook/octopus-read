@@ -60,22 +60,17 @@
   mode: single
 
 # ────────────────────────────────────────────────────────────────────────────────
-# SOLAR DIVERSION (daytime, outside E7)
+# SOLAR DIVERSION (excess solar powers Tapo — EcoFlow BMS handles charge/pass-through)
 # ────────────────────────────────────────────────────────────────────────────────
 
-# Turn Tapo ON when excess solar detected AND battery below target AND NOT E7
+# Turn Tapo ON when excess solar detected
 - alias: "Solar Diversion Start"
-  description: "Turn on Tapo plug for solar diversion when excess solar > 100W"
+  description: "Turn on Tapo plug when excess solar > 100W (EcoFlow BMS handles charging and pass-through)"
   trigger:
     - platform: numeric_state
       entity_id: sensor.excess_solar_watts
       above: 100
   condition:
-    - condition: template
-      value_template: "{{ states('sensor.is_cheap_rate') | lower == 'false' }}"
-    - condition: template
-      value_template: >
-        {{ states('sensor.delta_battery_level') | float(0) < states('input_number.max_charge_soc') | float(80) }}
     - condition: state
       entity_id: switch.tapo_p110_power
       state: "off"
@@ -85,7 +80,7 @@
         entity_id: switch.tapo_p110_power
   mode: single
 
-# Turn Tapo OFF when solar excess drops below threshold (hysteresis)
+# Turn Tapo OFF when solar excess drops below hysteresis threshold
 - alias: "Solar Diversion End"
   description: "Turn off Tapo plug when excess solar drops below 50W"
   trigger:
@@ -96,77 +91,6 @@
     - condition: state
       entity_id: switch.tapo_p110_power
       state: "on"
-    - condition: template
-      value_template: "{{ states('sensor.is_cheap_rate') | lower == 'false' }}"
-  action:
-    - service: switch.turn_off
-      target:
-        entity_id: switch.tapo_p110_power
-  mode: single
-
-# Safety: Turn Tapo OFF when battery reaches full during solar diversion
-- alias: "Solar Diversion Full Stop"
-  description: "Turn off Tapo when battery full during solar diversion"
-  trigger:
-    - platform: numeric_state
-      entity_id: sensor.delta_battery_level
-      above: 80
-  condition:
-    - condition: template
-      value_template: "{{ states('sensor.is_cheap_rate') | lower == 'false' }}"
-    - condition: state
-      entity_id: switch.tapo_p110_power
-      state: "on"
-  action:
-    - service: switch.turn_off
-      target:
-        entity_id: switch.tapo_p110_power
-  mode: single
-
-# ────────────────────────────────────────────────────────────────────────────────
-# SOLAR PASS-THROUGH (battery full, excess solar powers office directly)
-# ────────────────────────────────────────────────────────────────────────────────
-
-# Turn Tapo ON when battery is full AND excess solar detected AND NOT E7
-- alias: "Solar Pass-Through Start"
-  description: "Turn on Tapo plug when battery is full and excess solar available to power office loads directly"
-  trigger:
-    - platform: numeric_state
-      entity_id: sensor.excess_solar_watts
-      above: 50
-  condition:
-    - condition: template
-      value_template: >
-        {{ states('sensor.delta_battery_level') | float(0) >= states('input_number.max_charge_soc') | float(80) }}
-    - condition: state
-      entity_id: switch.tapo_p110_power
-      state: "off"
-    - condition: template
-      value_template: "{{ states('sensor.is_cheap_rate') | lower == 'false' }}"
-  action:
-    - service: switch.turn_on
-      target:
-        entity_id: switch.tapo_p110_power
-  mode: single
-
-# Turn Tapo OFF when battery drops below full OR solar excess gone (NOT E7)
-- alias: "Solar Pass-Through End"
-  description: "Turn off Tapo plug when battery drops below max charge or solar excess disappears"
-  trigger:
-    - platform: state
-      entity_id: sensor.delta_battery_level
-    - platform: numeric_state
-      entity_id: sensor.excess_solar_watts
-      below: 30
-  condition:
-    - condition: state
-      entity_id: switch.tapo_p110_power
-      state: "on"
-    - condition: template
-      value_template: "{{ states('sensor.is_cheap_rate') | lower == 'false' }}"
-    - condition: template
-      value_template: >
-        {{ states('sensor.delta_battery_level') | float(0) < states('input_number.max_charge_soc') | float(80) or states('sensor.excess_solar_watts') | float(0) < 30 }}
   action:
     - service: switch.turn_off
       target:
@@ -244,28 +168,6 @@
               '{{ [200, states("sensor.excess_solar_watts") | int(0)] | min }}'
   mode: single
 
-# Recharge trigger: If battery is low, divert at lower excess threshold
-- alias: "Low Battery Solar Recharge"
-  description: "Start diverting solar to battery when SOC below min discharge and excess solar available"
-  trigger:
-    - platform: template
-      value_template: >
-        {{ states('sensor.delta_battery_level') | float(0) < states('input_number.min_discharge_soc') | float(15) }}
-  condition:
-    - condition: numeric_state
-      entity_id: sensor.excess_solar_watts
-      above: 50
-    - condition: state
-      entity_id: switch.tapo_p110_power
-      state: "off"
-    - condition: template
-      value_template: "{{ states('sensor.is_cheap_rate') | lower == 'false' }}"
-  action:
-    - service: switch.turn_on
-      target:
-        entity_id: switch.tapo_p110_power
-  mode: single
-
 # ────────────────────────────────────────────────────────────────────────────────
 # SAFETY CONTROLS
 # ────────────────────────────────────────────────────────────────────────────────
@@ -313,9 +215,6 @@
           - condition: numeric_state
             entity_id: sensor.excess_solar_watts
             above: 100
-          - condition: template
-            value_template: >
-              {{ states('sensor.delta_battery_level') | float(0) < states('input_number.max_charge_soc') | float(80) }}
           - condition: state
             entity_id: switch.tapo_p110_power
             state: "off"
