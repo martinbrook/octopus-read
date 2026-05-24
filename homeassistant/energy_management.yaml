@@ -11,7 +11,7 @@ octopus_energy:
 input_number:
   max_charge_soc:
     name: "Max Charge SOC Target"
-    min: 50
+    min: 25
     max: 100
     step: 5
     initial: 80
