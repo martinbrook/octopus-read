@@ -67,10 +67,15 @@
 - alias: "Solar Diversion Start"
   description: "Turn on Tapo plug when excess solar > 100W (EcoFlow BMS handles charging and pass-through)"
   trigger:
+    - platform: homeassistant
+    - platform: state
+      entity_id: sensor.excess_solar_watts
     - platform: numeric_state
       entity_id: sensor.excess_solar_watts
       above: 100
   condition:
+    - condition: template
+      value_template: "{{ states('sensor.excess_solar_watts') | float(0) > 100 }}"
     - condition: state
       entity_id: switch.tapo_p110_power
       state: "off"
