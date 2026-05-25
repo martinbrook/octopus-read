@@ -18,6 +18,8 @@
       - conditions:
           - condition: template
             value_template: "{{ states('sensor.energy_production_today_2') | float(0) > 15 }}"
+          - condition: template
+            value_template: "{{ states('sensor.delta_battery_level') | float(0) < 25 }}"
         sequence:
           - service: input_number.set_value
             target:
@@ -28,9 +30,14 @@
             data:
               title: "E7 Smart Charge — Sunny"
               message: "Solar forecast > 15 kWh — max charge set to 25% (solar will fill it, no need for E7)"
+          - service: switch.turn_on
+            target:
+              entity_id: switch.tapo_p110_power
       - conditions:
           - condition: template
             value_template: "{{ states('sensor.energy_production_today_2') | float(0) > 8 }}"
+          - condition: template
+            value_template: "{{ states('sensor.delta_battery_level') | float(0) < 50 }}"
         sequence:
           - service: input_number.set_value
             target:
@@ -41,7 +48,14 @@
             data:
               title: "E7 Smart Charge — Moderate"
               message: "Solar forecast 8–15 kWh — max charge set to 50% (small E7 top-up, solar handles rest)"
-      - conditions: []
+          - service: switch.turn_on
+            target:
+              entity_id: switch.tapo_p110_power
+      - conditions:
+          - condition: template
+            value_template: "{{ states('sensor.energy_production_today_2') | float(0) <= 8 }}"
+          - condition: template
+            value_template: "{{ states('sensor.delta_battery_level') | float(0) < 80 }}"
         sequence:
           - service: input_number.set_value
             target:
@@ -52,12 +66,11 @@
             data:
               title: "E7 Smart Charge — Cloudy"
               message: "Solar forecast < 8 kWh — max charge set to 80% (maximise E7, little solar expected)"
-    # After setting max_charge_soc, check if battery needs charging
-    - condition: template
-      value_template: "{{ states('sensor.delta_battery_level') | float(0) < states('input_number.max_charge_soc') | float(80) }}"
-    - service: switch.turn_on
-      target:
-        entity_id: switch.tapo_p110_power
+          - service: switch.turn_on
+            target:
+              entity_id: switch.tapo_p110_power
+    default:
+      sequence: []
   mode: single
 
 # Turn Tapo OFF when E7 ends (08:30)

@@ -24,6 +24,8 @@ Reads `sensor.energy_production_today_2` (the SMA inverter forecast — at 01:30
 | 8–15 kWh (moderate) | 50% | Turn on if battery < 50% |
 | < 8 kWh (cloudy) | 80% | Turn on if battery < 80% |
 
+If battery is already at or above the target, max_charge_soc is set but Tapo stays off — no E7 is used.
+
 Sends a persistent notification with the value. Because this is a single automation, the charge check runs **after** max_charge_soc is set — no race condition.
 
 ## 01:30 – 08:30 — E7 Window
