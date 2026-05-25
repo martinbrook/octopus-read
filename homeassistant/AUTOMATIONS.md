@@ -12,24 +12,19 @@ E7 rate not yet active. Tapo off. Battery at whatever level daytime left it.
 
 Two automations fire simultaneously:
 
-### E7 Smart Charge Target
+### E7 Smart Charge
+
+A single automation that sets `max_charge_soc` and charges if battery is below target:
 
 Reads `sensor.energy_production_today_2` (the SMA inverter forecast — at 01:30 this is tomorrow's forecast):
 
-| Solar Forecast Today | max_charge_soc Set To | E7 Usage |
+| Solar Forecast Today | max_charge_soc Set To | Tapo Action |
 |---|---|---|
-| > 15 kWh (sunny) | 25% | Barely use E7, solar fills battery |
-| 8–15 kWh (moderate) | 50% | Small E7 top-up |
-| < 8 kWh (cloudy) | 80% | Maximise E7, little solar expected |
+| > 15 kWh (sunny) | 25% | Turn on if battery < 25% |
+| 8–15 kWh (moderate) | 50% | Turn on if battery < 50% |
+| < 8 kWh (cloudy) | 80% | Turn on if battery < 80% |
 
-Sends a persistent notification with the value.
-
-### E7 Charging Start
-
-Checks `battery < max_charge_soc`:
-
-- Battery at target → no action (Tapo stays off, no grid charging)
-- Battery below max_charge_soc → **turn Tapo on**, EcoFlow charges at AC rate during E7 window
+Sends a persistent notification with the value. Because this is a single automation, the charge check runs **after** max_charge_soc is set — no race condition.
 
 ## 01:30 – 08:30 — E7 Window
 
