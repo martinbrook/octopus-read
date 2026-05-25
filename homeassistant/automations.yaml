@@ -138,6 +138,8 @@
 - alias: "Solar Diversion End"
   description: "Turn off Tapo plug when excess solar drops below 50W"
   trigger:
+    - platform: state
+      entity_id: sensor.excess_solar_watts
     - platform: numeric_state
       entity_id: sensor.excess_solar_watts
       below: 50
@@ -156,12 +158,13 @@
 # ────────────────────────────────────────────────────────────────────────────────
 
 # Dynamic AC charge rate based on excess solar (Shelly EM)
+# Conservative tiers: charge rate always stays below trigger threshold to prevent oscillation
 - alias: "Dynamic AC Charge Rate"
   description: "Set EcoFlow AC charge rate proportional to excess solar from Shelly EM"
   trigger:
     - platform: numeric_state
       entity_id: sensor.excess_solar_watts
-      above: 30
+      above: 300
   condition:
     - condition: template
       value_template: >
@@ -171,14 +174,14 @@
       - conditions:
           - condition: numeric_state
             entity_id: sensor.excess_solar_watts
-            above: 1500
+            above: 1300
         sequence:
           - service: number.set_value
             target:
               entity_id: number.delta_ac_charging_power
             data:
               value: >
-                '{{ [2000, states("sensor.excess_solar_watts") | int(0)] | min }}'
+                '{{ [1200, states("sensor.excess_solar_watts") | int(0)] | min }}'
       - conditions:
           - condition: numeric_state
             entity_id: sensor.excess_solar_watts
@@ -189,18 +192,40 @@
               entity_id: number.delta_ac_charging_power
             data:
               value: >
-                '{{ [1500, states("sensor.excess_solar_watts") | int(0)] | min }}'
+                '{{ [900, states("sensor.excess_solar_watts") | int(0)] | min }}'
       - conditions:
           - condition: numeric_state
             entity_id: sensor.excess_solar_watts
-            above: 500
+            above: 800
         sequence:
           - service: number.set_value
             target:
               entity_id: number.delta_ac_charging_power
             data:
               value: >
-                '{{ [1000, states("sensor.excess_solar_watts") | int(0)] | min }}'
+                '{{ [700, states("sensor.excess_solar_watts") | int(0)] | min }}'
+      - conditions:
+          - condition: numeric_state
+            entity_id: sensor.excess_solar_watts
+            above: 600
+        sequence:
+          - service: number.set_value
+            target:
+              entity_id: number.delta_ac_charging_power
+            data:
+              value: >
+                '{{ [500, states("sensor.excess_solar_watts") | int(0)] | min }}'
+      - conditions:
+          - condition: numeric_state
+            entity_id: sensor.excess_solar_watts
+            above: 450
+        sequence:
+          - service: number.set_value
+            target:
+              entity_id: number.delta_ac_charging_power
+            data:
+              value: >
+                '{{ [400, states("sensor.excess_solar_watts") | int(0)] | min }}'
       - conditions:
           - condition: numeric_state
             entity_id: sensor.excess_solar_watts
@@ -211,15 +236,14 @@
               entity_id: number.delta_ac_charging_power
             data:
               value: >
-                '{{ [500, states("sensor.excess_solar_watts") | int(0)] | min }}'
+                '{{ [300, states("sensor.excess_solar_watts") | int(0)] | min }}'
     default:
       sequence:
         - service: number.set_value
           target:
             entity_id: number.delta_ac_charging_power
           data:
-            value: >
-              '{{ [200, states("sensor.excess_solar_watts") | int(0)] | min }}'
+            value: 200
   mode: single
 
 # ────────────────────────────────────────────────────────────────────────────────
