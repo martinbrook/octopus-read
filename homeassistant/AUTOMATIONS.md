@@ -40,6 +40,13 @@ EcoFlow charges via Tapo at whatever rate it chooses (AC charging defaults to Ec
 - Resets `max_charge_soc` back to **80%** for next day
 - Battery should be at the target level (25%, 50%, or 80%)
 
+## Prerequisite: EcoFlow Charging Mode
+
+**Important:** For the `Dynamic AC Charge Rate` automation to take effect, the EcoFlow must be set to **"Custom"** charging mode (via the device hardware switch or EcoFlow app).
+
+- **Max mode** — the EcoFlow BMS ignores the AC charge rate setting and charges at its default rate (~1000 W). This causes the charge rate to exceed available excess solar, killing the surplus, turning the Tapo off, and creating an oscillation loop.
+- **Custom mode** — the BMS respects the `AC Charging Power` number entity set by Home Assistant. The dynamic rate automation only works in this mode.
+
 ## Daytime — Outside E7
 
 ### Dynamic AC Charge Rate
@@ -92,8 +99,7 @@ If battery < min_discharge_soc (15%) → notification sent.
 
 | Automation | Uses max_charge_soc? | How |
 |---|---|---|
-| E7 Charging Start | Yes | Only fires when battery < max_charge_soc |
-| E7 Smart Charge Target | Sets it | Dynamic value at 01:30, reset at 08:30 |
+| E7 Smart Charge | Sets + checks | Sets dynamic value at 01:30, only turns Tapo on if battery < max_charge_soc |
 | E7 Charging End | Resets it | Always sets back to 80% |
 | E7 Charging Full Stop | Yes | Stops when battery >= max_charge_soc - 2 |
 | Dynamic AC Charge Rate | Yes | Only fires when battery < max_charge_soc |
