@@ -6,26 +6,9 @@
 # E7 CHEAP RATE CHARGING (01:30 - 08:30 local)
 # ────────────────────────────────────────────────────────────────────────────────
 
-# Turn Tapo ON when E7 starts AND battery below max charge target
-- alias: "E7 Charging Start"
-  description: "Turn on Tapo plug at E7 start if battery below max charge level"
-  trigger:
-    - platform: state
-      entity_id: sensor.is_cheap_rate
-      to: "True"
-  condition:
-    - condition: template
-      value_template: >
-        {{ states('sensor.delta_battery_level') | float(0) < states('input_number.max_charge_soc') | float(80) }}
-  action:
-    - service: switch.turn_on
-      target:
-        entity_id: switch.tapo_p110_power
-  mode: single
-
-# Set max charge target at E7 start based on solar forecast (EcoFlow BMS handles charging strategy)
-- alias: "E7 Smart Charge Target"
-  description: "Set max_charge_soc based on solar forecast — less E7 on sunny days"
+# Set max charge target at E7 start based on solar forecast, turn Tapo on if battery below target
+- alias: "E7 Smart Charge"
+  description: "Set max_charge_soc from solar forecast, charge if battery below target"
   trigger:
     - platform: state
       entity_id: sensor.is_cheap_rate
@@ -69,6 +52,12 @@
             data:
               title: "E7 Smart Charge — Cloudy"
               message: "Solar forecast < 8 kWh — max charge set to 80% (maximise E7, little solar expected)"
+    # After setting max_charge_soc, check if battery needs charging
+    - condition: template
+      value_template: "{{ states('sensor.delta_battery_level') | float(0) < states('input_number.max_charge_soc') | float(80) }}"
+    - service: switch.turn_on
+      target:
+        entity_id: switch.tapo_p110_power
   mode: single
 
 # Turn Tapo OFF when E7 ends (08:30)
