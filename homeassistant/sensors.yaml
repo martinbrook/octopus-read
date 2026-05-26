@@ -78,6 +78,24 @@
       device_class: power
       state_class: measurement
 
+    - unique_id: target_charging_power
+      name: "Target Charging Power"
+      state: >
+        {% set excess = states('sensor.excess_solar_watts') | float(0) %}
+        {% set ac_out = states('sensor.delta_ac_out_power') | float(0) %}
+        {% set margin = 50 %}
+        {% set raw = (excess - ac_out - margin) | int(0) %}
+        {% if raw > 1200 %}
+          1200
+        {% elif raw < 200 %}
+          200
+        {% else %}
+          {{ raw }}
+        {% endif %}
+      unit_of_measurement: "W"
+      device_class: power
+      state_class: measurement
+
     - unique_id: net_grid_watts
       name: "Net Grid Watts"
       state: >

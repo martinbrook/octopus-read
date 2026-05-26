@@ -51,19 +51,20 @@ EcoFlow charges via Tapo at whatever rate it chooses (AC charging defaults to Ec
 
 ### Dynamic AC Charge Rate
 
-Runs when excess solar > 300W and battery < max_charge_soc. Conservative tiers — charge rate always stays below the trigger threshold to prevent oscillation (charge rate > excess → Tapo off → loop):
+Runs when excess solar > 300W and battery < max_charge_soc. Uses `sensor.target_charging_power` which calculates: `excess_solar_watts - delta_ac_out_power - 50W margin`, capped 200–1200W. This ensures the EcoFlow's total AC draw (charge rate + AC output + conversion losses) never exceeds available excess solar.
 
-| Excess Solar | AC Charge Rate | Notes |
+| Target Charge Power | AC Charge Rate | Notes |
 |---|---|---|
-| < 300 W | 200 W (minimum) | No meaningful surplus |
-| 300–450 W | 300 W | Small surplus |
-| 450–600 W | 400 W | Moderate surplus |
-| 600–800 W | 500 W | Strong surplus |
-| 800–1000 W | 700 W | Very strong surplus |
-| 1000–1300 W | 900 W | Excellent surplus |
-| > 1300 W | 1200 W (capped) | Maximum charge rate |
+| < 300 W | 200 W (minimum) | No meaningful surplus for charging |
+| 300–450 W | 300 W | Small surplus for charging |
+| 450–600 W | 400 W | Moderate surplus for charging |
+| 600–800 W | 500 W | Strong surplus for charging |
+| 800–1000 W | 700 W | Very strong surplus for charging |
+| 1000–1200 W | 900–1200 W | Excellent surplus for charging |
 
-Rate is `min(tier, excess_solar_watts)` — never charges from grid.
+Charge rate is capped at tier value — never charges from grid.
+
+**Why this matters:** The EcoFlow's total AC input = charge rate + `delta_ac_out_power` + conversion losses. Without accounting for AC output, a 400W charge setting + 200W AC output = 600W total draw, which can exceed available excess solar, killing the surplus and causing the Tapo to oscillate on/off.
 
 ### Solar Diversion Start
 
