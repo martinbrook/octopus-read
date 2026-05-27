@@ -152,8 +152,6 @@
 - alias: "Solar Diversion End"
   description: "Turn off Tapo plug when SMA output drops below 50W"
   trigger:
-    - platform: state
-      entity_id: sensor.sbfspot_solar_power
     - platform: numeric_state
       entity_id: sensor.sbfspot_solar_power
       below: 50
