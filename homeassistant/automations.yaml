@@ -127,6 +127,8 @@
   condition:
     - condition: template
       value_template: "{{ states('sensor.sbfspot_solar_power') | float(0) > 100 }}"
+    - condition: template
+      value_template: "{{ states('sensor.net_grid_watts') | float(0) < -50 }}"
     - condition: state
       entity_id: switch.tapo_p110_power
       state: "off"
@@ -247,9 +249,8 @@
       - conditions:
           - condition: template
             value_template: "{{ states('sensor.is_cheap_rate') | lower == 'false' }}"
-          - condition: numeric_state
-            entity_id: sensor.sbfspot_solar_power
-            above: 100
+          - condition: template
+            value_template: "{{ states('sensor.net_grid_watts') | float(0) < -50 }}"
           - condition: state
             entity_id: switch.tapo_p110_power
             state: "off"
