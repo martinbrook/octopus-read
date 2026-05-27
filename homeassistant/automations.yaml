@@ -157,19 +157,17 @@
 # DYNAMIC AC CHARGE RATE (battery not full, excess solar sets charge speed)
 # ────────────────────────────────────────────────────────────────────────────────
 
-# Dynamic AC charge rate — proportional to excess solar (gain 0.6)
-# charge_rate = clamp(gain * excess_solar, 200, 1200)
-# Above 400W = increase charge, below 200W = decrease charge (200W hysteresis deadband).
-# 10s delay lets EcoFlow ramp before re-evaluating, preventing oscillation.
+# Dynamic AC charge rate — proportional to excess solar after removing AC overhead
+# charge_rate = clamp((excess - AC_out) / 1.2, 200, 1200)
+# Only fires on rising excess (> 400W) with 10s delay. No "below" trigger —
+# the corrected formula converges to equilibrium without oscillation.
+# When battery fills or solar fades, EcoFlow naturally stops charging.
 - alias: "Dynamic AC Charge Rate"
-  description: "Set EcoFlow AC charge rate proportional to excess solar"
+  description: "Set EcoFlow AC charge rate from available excess solar"
   trigger:
     - platform: numeric_state
       entity_id: sensor.excess_solar_watts
       above: 400
-    - platform: numeric_state
-      entity_id: sensor.excess_solar_watts
-      below: 200
   condition:
     - condition: template
       value_template: >

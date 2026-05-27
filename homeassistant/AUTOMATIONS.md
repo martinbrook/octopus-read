@@ -51,26 +51,33 @@ EcoFlow charges via Tapo at whatever rate it chooses (AC charging defaults to Ec
 
 ### Dynamic AC Charge Rate
 
-Runs when excess solar crosses above 400W or below 200W (200W hysteresis) and battery < max_charge_soc. Uses a **proportional controller**:
+Runs when excess solar crosses above 400W and battery < max_charge_soc. Uses the formula:
 
 ```
-charge_rate = clamp(gain × excess_solar, 200, 1200)
+charge_rate = clamp((excess_solar - AC_out) / 1.2, 200, 1200)
 ```
 
-With gain = 0.6, the charge rate naturally converges to a stable equilibrium where the EcoFlow's total AC draw matches available solar.
+Where `AC_out` = `sensor.delta_ac_out_power` (current AC load from the EcoFlow) and `1.2` accounts for EcoFlow AC-DC conversion overhead (~20%).
 
 | Excess Solar | Charge Rate | Notes |
 |---|---|---|
-| 0–333 W | 200 W (minimum) | No meaningful surplus for charging |
-| 333–500 W | 200–300 W | Small surplus |
-| 500–833 W | 300–500 W | Moderate surplus |
-| 833–1200 W | 500–720 W | Strong surplus |
-| 1200–2000 W | 720–1200 W | Excellent surplus |
+| 0–541 W | 200 W (minimum) | No meaningful surplus for charging |
+| 541–833 W | 200–445 W | Small surplus |
+| 833–1200 W | 445–667 W | Moderate surplus |
+| 1200–1777 W | 667–996 W | Strong surplus |
+| > 1777 W | 996–1200 W | Excellent surplus |
 | > 2000 W | 1200 W (max) | Cap reached |
 
-**Oscillation prevention:** The automation has a 10-second delay and only fires on significant solar changes (above 400W), not on every state change. This gives the EcoFlow time to ramp up (takes ~15s) before re-evaluating, matching the human approach of waiting for the system to settle before adjusting again.
+**Why subtract AC_out and divide by 1.2:** The EcoFlow's total AC draw = charge_rate + AC_out + overhead. At equilibrium, this must equal available excess solar. The overhead is ~20% (AC-DC conversion losses). So:
 
-Tune the gain: higher (0.7–0.8) = faster charge but may oscillate; lower (0.4–0.5) = slower charge but more stable.
+```
+excess = charge_rate × 1.2 + AC_out
+→ charge_rate = (excess - AC_out) / 1.2
+```
+
+The automation only fires on rising excess (> 400W), not on falling. The 10-second delay lets the EcoFlow ramp before re-reading the sensor. When the battery fills or solar fades, the EcoFlow BMS naturally stops charging (switches to pass-through).
+
+Tune the overhead factor: higher (1.3) = more conservative (charge rate lower); lower (1.1) = more aggressive (charge rate higher).
 
 ### Solar Diversion Start
 

@@ -82,8 +82,9 @@
       name: "Target Charging Power"
       state: >
         {% set excess = states('sensor.excess_solar_watts') | float(0) %}
-        {% set gain = 0.6 %}
-        {% set raw = (excess * gain) | int(0) %}
+        {% set ac_out = states('sensor.delta_ac_out_power') | float(0) %}
+        {% set overhead = 1.2 %}  {%# EcoFlow conversion losses ~20% %}
+        {% set raw = ((excess - ac_out) / overhead) | int(0) %}
         {% if raw > 1200 %}
           1200
         {% elif raw < 200 %}
