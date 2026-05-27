@@ -111,37 +111,49 @@
 # SOLAR DIVERSION (excess solar powers Tapo — EcoFlow BMS handles charge/pass-through)
 # ────────────────────────────────────────────────────────────────────────────────
 
-# Turn Tapo ON when excess solar detected
+# Turn Tapo ON when SMA solar production > 100W and set initial charge rate
+# Uses SMA inverter output (NOT grid flow) — grid flow includes EcoFlow draw,
+# which creates a circular feedback loop causing oscillation.
 - alias: "Solar Diversion Start"
-  description: "Turn on Tapo plug when excess solar > 100W (EcoFlow BMS handles charging and pass-through)"
+  description: "Turn on Tapo plug when SMA output > 100W (no circular dependency)"
   trigger:
     - platform: homeassistant
       event: start
     - platform: state
-      entity_id: sensor.excess_solar_watts
+      entity_id: sensor.sbfspot_solar_power
     - platform: numeric_state
-      entity_id: sensor.excess_solar_watts
+      entity_id: sensor.sbfspot_solar_power
       above: 100
   condition:
     - condition: template
-      value_template: "{{ states('sensor.excess_solar_watts') | float(0) > 100 }}"
+      value_template: "{{ states('sensor.sbfspot_solar_power') | float(0) > 100 }}"
     - condition: state
       entity_id: switch.tapo_p110_power
       state: "off"
+    - condition: template
+      value_template: "{{ states('sensor.is_cheap_rate') | lower == 'false' }}"
   action:
     - service: switch.turn_on
       target:
         entity_id: switch.tapo_p110_power
+    - delay: "00:00:05"
+    - service: number.set_value
+      target:
+        entity_id: number.delta_ac_charging_power
+      data:
+        value: >
+          {{ ((states('sensor.sbfspot_solar_power') | float(0) / 2) | int(0) | clamp(200, 1200)) }}
   mode: single
 
-# Turn Tapo OFF when solar excess drops below hysteresis threshold
+# Turn Tapo OFF when SMA solar production drops below hysteresis threshold
+# Uses SMA output (NOT grid flow) — same circular dependency reason as Start.
 - alias: "Solar Diversion End"
-  description: "Turn off Tapo plug when excess solar drops below 50W"
+  description: "Turn off Tapo plug when SMA output drops below 50W"
   trigger:
     - platform: state
-      entity_id: sensor.excess_solar_watts
+      entity_id: sensor.sbfspot_solar_power
     - platform: numeric_state
-      entity_id: sensor.excess_solar_watts
+      entity_id: sensor.sbfspot_solar_power
       below: 50
   condition:
     - condition: state
@@ -151,34 +163,44 @@
     - service: switch.turn_off
       target:
         entity_id: switch.tapo_p110_power
+    - service: number.set_value
+      target:
+        entity_id: number.delta_ac_charging_power
+      data:
+        value: 200
   mode: single
 
 # ────────────────────────────────────────────────────────────────────────────────
 # DYNAMIC AC CHARGE RATE (battery not full, excess solar sets charge speed)
 # ────────────────────────────────────────────────────────────────────────────────
 
-# Dynamic AC charge rate — proportional to excess solar after removing AC overhead
-# charge_rate = clamp((excess - AC_out) / 1.2, 200, 1200)
-# Only fires on rising excess (> 400W) with 10s delay. No "below" trigger —
-# the corrected formula converges to equilibrium without oscillation.
-# When battery fills or solar fades, EcoFlow naturally stops charging.
+# Dynamic AC charge rate — incremental adjustment based on grid flow
+# Matches your manual method: observe grid feed, adjust charge rate to eliminate it.
+# Timer every 2 minutes + 10s delay lets the EcoFlow settle before re-evaluating.
+# Uses the current charge rate + adjustment instead of absolute target — this converges
+# because the EcoFlow's total draw changes the grid feed, and we adjust toward 0.
 - alias: "Dynamic AC Charge Rate"
-  description: "Set EcoFlow AC charge rate from available excess solar"
+  description: "Incrementally adjust EcoFlow AC charge rate to eliminate grid import/export"
   trigger:
-    - platform: numeric_state
-      entity_id: sensor.excess_solar_watts
-      above: 400
+    - platform: time_pattern
+      minutes: "/2"
   condition:
     - condition: template
       value_template: >
         {{ states('sensor.delta_battery_level') | float(0) < states('input_number.max_charge_soc') | float(80) }}
+    - condition: state
+      entity_id: switch.tapo_p110_power
+      state: "on"
   action:
     - delay: "00:00:10"
     - service: number.set_value
       target:
         entity_id: number.delta_ac_charging_power
       data:
-        value: "{{ states('sensor.target_charging_power') | int(200) }}"
+        value: >
+          {{ ((states('number.delta_ac_charging_power') | float(600)
+             - 0.3 * states('sensor.net_grid_watts') | float(0))
+             | round(0) | clamp(200, 1200)) }}
   mode: single
 
 # ────────────────────────────────────────────────────────────────────────────────
@@ -226,7 +248,7 @@
           - condition: template
             value_template: "{{ states('sensor.is_cheap_rate') | lower == 'false' }}"
           - condition: numeric_state
-            entity_id: sensor.excess_solar_watts
+            entity_id: sensor.sbfspot_solar_power
             above: 100
           - condition: state
             entity_id: switch.tapo_p110_power

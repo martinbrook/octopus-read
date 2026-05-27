@@ -81,10 +81,8 @@
     - unique_id: target_charging_power
       name: "Target Charging Power"
       state: >
-        {% set excess = states('sensor.excess_solar_watts') | float(0) %}
-        {% set ac_out = states('sensor.delta_ac_out_power') | float(0) %}
-        {% set overhead = 1.2 %}
-        {% set raw = ((excess - ac_out) / overhead) | int(0) %}
+        {% set sma = states('sensor.sbfspot_solar_power') | float(0) %}
+        {% set raw = (sma / 2) | int(0) %}
         {% if raw > 1200 %}
           1200
         {% elif raw < 200 %}

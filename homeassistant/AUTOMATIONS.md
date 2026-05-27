@@ -51,37 +51,33 @@ EcoFlow charges via Tapo at whatever rate it chooses (AC charging defaults to Ec
 
 ### Dynamic AC Charge Rate
 
-Runs when excess solar crosses above 400W and battery < max_charge_soc. Uses the formula:
+Two mechanisms work together:
+
+**Initial setting** — When Solar Diversion Start turns the Tapo on, the charge rate is set to `SMA_output / 2` (conservative starting point).
+
+**Ongoing adjustment** — Every 2 minutes, the automation incrementally adjusts the charge rate:
 
 ```
-charge_rate = clamp((excess_solar - AC_out) / 1.2, 200, 1200)
+charge_rate += 0.3 × (-grid_flow)
 ```
 
-Where `AC_out` = `sensor.delta_ac_out_power` (current AC load from the EcoFlow) and `1.2` accounts for EcoFlow AC-DC conversion overhead (~20%).
+This matches your manual method: observe grid feed, adjust charge rate to eliminate it. The 2-minute timer + 10-second delay lets the EcoFlow settle before re-evaluating, preventing oscillation.
 
-| Excess Solar | Charge Rate | Notes |
+| Grid Feed | Adjustment per cycle | Notes |
 |---|---|---|
-| 0–541 W | 200 W (minimum) | No meaningful surplus for charging |
-| 541–833 W | 200–445 W | Small surplus |
-| 833–1200 W | 445–667 W | Moderate surplus |
-| 1200–1777 W | 667–996 W | Strong surplus |
-| > 1777 W | 996–1200 W | Excellent surplus |
-| > 2000 W | 1200 W (max) | Cap reached |
+| -500 W (exporting) | +150 W | Increase charge rate |
+| -200 W (exporting) | +60 W | Small increase |
+| 0 W (balanced) | 0 W | Equilibrium reached |
+| +100 W (importing) | -30 W | Decrease charge rate |
+| +300 W (importing) | -90 W | Large decrease |
 
-**Why subtract AC_out and divide by 1.2:** The EcoFlow's total AC draw = charge_rate + AC_out + overhead. At equilibrium, this must equal available excess solar. The overhead is ~20% (AC-DC conversion losses). So:
+**Why this works:** At equilibrium, `grid_flow = 0` — all solar is being used (house loads + EcoFlow charging) with zero grid import or export. The 0.3 gain ensures convergence without overshoot. The 2-minute interval is much longer than the EcoFlow's ramp time (~15s), so the system has time to settle before each adjustment.
 
-```
-excess = charge_rate × 1.2 + AC_out
-→ charge_rate = (excess - AC_out) / 1.2
-```
-
-The automation only fires on rising excess (> 400W), not on falling. The 10-second delay lets the EcoFlow ramp before re-reading the sensor. When the battery fills or solar fades, the EcoFlow BMS naturally stops charging (switches to pass-through).
-
-Tune the overhead factor: higher (1.3) = more conservative (charge rate lower); lower (1.1) = more aggressive (charge rate higher).
+The 200 minimum charge rate ensures some charging happens even when solar is marginal. The 1200 maximum prevents over-optimistic settings.
 
 ### Solar Diversion Start
 
-Excess solar > 100W and Tapo off → **turn Tapo on**.
+SMA inverter output > 100W and Tapo off → **turn Tapo on**. Sets initial charge rate to `SMA_output / 2`.
 
 EcoFlow BMS handles the rest:
 - Battery below max_charge_soc → charges battery
@@ -89,16 +85,16 @@ EcoFlow BMS handles the rest:
 
 ### Solar Diversion End
 
-Excess solar < 50W and Tapo on → **turn Tapo off**.
+SMA inverter output < 50W and Tapo on → **turn Tapo off**. Resets charge rate to 200W (minimum).
 
-50W hysteresis gap prevents rapid toggling when excess solar hovers near 100W.
+50W hysteresis gap prevents rapid toggling when SMA output hovers near 100W.
 
 ## Every 15 Minutes — Tapo State Recovery
 
 Catches reboots or lost state:
 
 - **E7 branch** — If E7 active + battery < max_charge_soc + Tapo off → turn on
-- **Solar branch** — If NOT E7 + excess solar > 100W + Tapo off → turn on
+- **Solar branch** — If NOT E7 + SMA output > 100W + Tapo off → turn on
 - Otherwise → no action
 
 ## Safety — Low Battery Warning (Any Time)
