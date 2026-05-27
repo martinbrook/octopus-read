@@ -166,9 +166,7 @@
       entity_id: sensor.excess_solar_watts
       above: 300
     - platform: state
-      entity_id:
-        - sensor.excess_solar_watts
-        - sensor.delta_ac_out_power
+      entity_id: sensor.excess_solar_watts
   condition:
     - condition: template
       value_template: >
