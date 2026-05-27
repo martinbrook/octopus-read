@@ -157,10 +157,11 @@
 # DYNAMIC AC CHARGE RATE (battery not full, excess solar sets charge speed)
 # ────────────────────────────────────────────────────────────────────────────────
 
-# Dynamic AC charge rate — tiers based on available excess after EcoFlow AC load
-# Target = excess - delta_ac_out_power - 50W margin, capped 200-1200W
+# Dynamic AC charge rate — proportional to excess solar (gain 0.6)
+# charge_rate = clamp(gain * excess_solar, 200, 1200)
+# Converges to stable equilibrium where EcoFlow draw ≈ available solar
 - alias: "Dynamic AC Charge Rate"
-  description: "Set EcoFlow AC charge rate from target_charging_power sensor"
+  description: "Set EcoFlow AC charge rate proportional to excess solar"
   trigger:
     - platform: numeric_state
       entity_id: sensor.excess_solar_watts
@@ -172,74 +173,11 @@
       value_template: >
         {{ states('sensor.delta_battery_level') | float(0) < states('input_number.max_charge_soc') | float(80) }}
   action:
-    choose:
-      - conditions:
-          - condition: template
-            value_template: >
-              {{ states('sensor.target_charging_power') | float(0) >= 1200 }}
-        sequence:
-          - service: number.set_value
-            target:
-              entity_id: number.delta_ac_charging_power
-            data:
-              value: 1200
-      - conditions:
-          - condition: numeric_state
-            entity_id: sensor.target_charging_power
-            above: 1000
-        sequence:
-          - service: number.set_value
-            target:
-              entity_id: number.delta_ac_charging_power
-            data:
-              value: 900
-      - conditions:
-          - condition: numeric_state
-            entity_id: sensor.target_charging_power
-            above: 800
-        sequence:
-          - service: number.set_value
-            target:
-              entity_id: number.delta_ac_charging_power
-            data:
-              value: 700
-      - conditions:
-          - condition: numeric_state
-            entity_id: sensor.target_charging_power
-            above: 600
-        sequence:
-          - service: number.set_value
-            target:
-              entity_id: number.delta_ac_charging_power
-            data:
-              value: 500
-      - conditions:
-          - condition: numeric_state
-            entity_id: sensor.target_charging_power
-            above: 450
-        sequence:
-          - service: number.set_value
-            target:
-              entity_id: number.delta_ac_charging_power
-            data:
-              value: 400
-      - conditions:
-          - condition: numeric_state
-            entity_id: sensor.target_charging_power
-            above: 300
-        sequence:
-          - service: number.set_value
-            target:
-              entity_id: number.delta_ac_charging_power
-            data:
-              value: 300
-    default:
-      sequence:
-        - service: number.set_value
-          target:
-            entity_id: number.delta_ac_charging_power
-          data:
-            value: 200
+    - service: number.set_value
+      target:
+        entity_id: number.delta_ac_charging_power
+      data:
+        value: "{{ states('sensor.target_charging_power') | int(200) }}"
   mode: single
 
 # ────────────────────────────────────────────────────────────────────────────────
