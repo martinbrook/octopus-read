@@ -159,7 +159,7 @@
 
 # Dynamic AC charge rate — proportional to excess solar (gain 0.6)
 # charge_rate = clamp(gain * excess_solar, 200, 1200)
-# Only fires on significant solar changes (NOT on every state change).
+# Above 400W = increase charge, below 200W = decrease charge (200W hysteresis deadband).
 # 10s delay lets EcoFlow ramp before re-evaluating, preventing oscillation.
 - alias: "Dynamic AC Charge Rate"
   description: "Set EcoFlow AC charge rate proportional to excess solar"
@@ -167,6 +167,9 @@
     - platform: numeric_state
       entity_id: sensor.excess_solar_watts
       above: 400
+    - platform: numeric_state
+      entity_id: sensor.excess_solar_watts
+      below: 200
   condition:
     - condition: template
       value_template: >

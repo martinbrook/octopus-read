@@ -51,7 +51,7 @@ EcoFlow charges via Tapo at whatever rate it chooses (AC charging defaults to Ec
 
 ### Dynamic AC Charge Rate
 
-Runs when excess solar crosses above 400W and battery < max_charge_soc. Uses a **proportional controller**:
+Runs when excess solar crosses above 400W or below 200W (200W hysteresis) and battery < max_charge_soc. Uses a **proportional controller**:
 
 ```
 charge_rate = clamp(gain × excess_solar, 200, 1200)
