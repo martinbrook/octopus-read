@@ -51,13 +51,13 @@ EcoFlow charges via Tapo at whatever rate it chooses (AC charging defaults to Ec
 
 ### Dynamic AC Charge Rate
 
-Runs when excess solar > 300W and battery < max_charge_soc. Uses a **proportional controller**:
+Runs when excess solar crosses above 400W and battery < max_charge_soc. Uses a **proportional controller**:
 
 ```
 charge_rate = clamp(gain × excess_solar, 200, 1200)
 ```
 
-With gain = 0.6, the charge rate naturally converges to a stable equilibrium where the EcoFlow's total AC draw matches available solar — no overshoot, no oscillation.
+With gain = 0.6, the charge rate naturally converges to a stable equilibrium where the EcoFlow's total AC draw matches available solar.
 
 | Excess Solar | Charge Rate | Notes |
 |---|---|---|
@@ -68,7 +68,7 @@ With gain = 0.6, the charge rate naturally converges to a stable equilibrium whe
 | 1200–2000 W | 720–1200 W | Excellent surplus |
 | > 2000 W | 1200 W (max) | Cap reached |
 
-**Why this works:** A proportional controller observes the error (available solar vs current charge) and adjusts toward convergence. At equilibrium, `charge_rate = gain × excess`, which guarantees the EcoFlow never draws more than available power. The 0.6 gain accounts for EcoFlow overhead (~30%) while still leaving usable solar for loads.
+**Oscillation prevention:** The automation has a 10-second delay and only fires on significant solar changes (above 400W), not on every state change. This gives the EcoFlow time to ramp up (takes ~15s) before re-evaluating, matching the human approach of waiting for the system to settle before adjusting again.
 
 Tune the gain: higher (0.7–0.8) = faster charge but may oscillate; lower (0.4–0.5) = slower charge but more stable.
 

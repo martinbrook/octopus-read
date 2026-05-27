@@ -159,20 +159,20 @@
 
 # Dynamic AC charge rate — proportional to excess solar (gain 0.6)
 # charge_rate = clamp(gain * excess_solar, 200, 1200)
-# Converges to stable equilibrium where EcoFlow draw ≈ available solar
+# Only fires on significant solar changes (NOT on every state change).
+# 10s delay lets EcoFlow ramp before re-evaluating, preventing oscillation.
 - alias: "Dynamic AC Charge Rate"
   description: "Set EcoFlow AC charge rate proportional to excess solar"
   trigger:
     - platform: numeric_state
       entity_id: sensor.excess_solar_watts
-      above: 300
-    - platform: state
-      entity_id: sensor.excess_solar_watts
+      above: 400
   condition:
     - condition: template
       value_template: >
         {{ states('sensor.delta_battery_level') | float(0) < states('input_number.max_charge_soc') | float(80) }}
   action:
+    - delay: "00:00:10"
     - service: number.set_value
       target:
         entity_id: number.delta_ac_charging_power
